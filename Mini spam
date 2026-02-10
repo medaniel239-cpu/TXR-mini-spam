@@ -1,0 +1,112 @@
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local player = Players.LocalPlayer
+
+local sendChatEvent = ReplicatedStorage:WaitForChild("SendChatEvent")
+
+-- ================= UI SETUP =================
+local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+gui.Name = "LuxuryChatSpam"
+gui.ResetOnSpawn = false
+
+local main = Instance.new("Frame", gui)
+main.Size = UDim2.fromScale(0.36,0.55)
+main.Position = UDim2.fromScale(0.32,0.25)
+main.BackgroundColor3 = Color3.fromRGB(20,20,25)
+Instance.new("UICorner", main).CornerRadius = UDim.new(0,18)
+
+local title = Instance.new("TextLabel", main)
+title.Size = UDim2.fromScale(1,0.12)
+title.BackgroundTransparency = 1
+title.Text = "Auto Chat Spam"
+title.Font = Enum.Font.GothamBold
+title.TextSize = 20
+title.TextColor3 = Color3.fromRGB(230,230,240)
+
+-- ================= INPUT =================
+local msgBox = Instance.new("TextBox", main)
+msgBox.Position = UDim2.fromScale(0.05,0.18)
+msgBox.Size = UDim2.fromScale(0.9,0.1)
+msgBox.PlaceholderText = "Type a message to add"
+msgBox.Font = Enum.Font.Gotham
+msgBox.TextSize = 14
+msgBox.TextColor3 = Color3.fromRGB(230,230,230)
+msgBox.BackgroundColor3 = Color3.fromRGB(35,35,45)
+Instance.new("UICorner", msgBox).CornerRadius = UDim.new(0,10)
+
+-- ================= BUTTONS =================
+local function makeButton(x,y,text)
+    local b = Instance.new("TextButton", main)
+    b.Position = UDim2.fromScale(x,y)
+    b.Size = UDim2.fromScale(0.42,0.1)
+    b.Text = text
+    b.Font = Enum.Font.GothamBold
+    b.TextSize = 14
+    b.BackgroundColor3 = Color3.fromRGB(180,180,220)
+    b.TextColor3 = Color3.fromRGB(20,20,25)
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0,12)
+    return b
+end
+
+local addBtn = makeButton(0.05,0.75,"Add Message")
+local onBtn = makeButton(0.53,0.75,"ON")
+local offBtn = makeButton(0.05,0.87,"OFF")
+
+-- ================= MESSAGE STORAGE =================
+local messages = {}
+local currentIndex = 1
+local running = false
+local pasteDelay = 1.5
+
+-- ================= LOG =================
+local log = Instance.new("TextLabel", main)
+log.Position = UDim2.fromScale(0.05,0.3)
+log.Size = UDim2.fromScale(0.9,0.4)
+log.BackgroundColor3 = Color3.fromRGB(25,25,35)
+log.TextWrapped = true
+log.TextYAlignment = Enum.TextYAlignment.Top
+log.TextXAlignment = Enum.TextXAlignment.Left
+log.Font = Enum.Font.Code
+log.TextSize = 12
+log.TextColor3 = Color3.fromRGB(200,200,210)
+Instance.new("UICorner", log).CornerRadius = UDim.new(0,10)
+
+local function appendLog(txt)
+    log.Text = log.Text .. "\n" .. txt
+end
+
+-- ================= AUTO-SPAM LOOP =================
+task.spawn(function()
+    while true do
+        task.wait(pasteDelay)
+        if running and #messages > 0 then
+            local msg = messages[currentIndex]
+            sendChatEvent:FireServer(msg)
+            appendLog("Sent: "..msg)
+
+            currentIndex = currentIndex + 1
+            if currentIndex > #messages then currentIndex = 1 end
+        end
+    end
+end)
+
+-- ================= BUTTON EVENTS =================
+addBtn.MouseButton1Click:Connect(function()
+    local msg = msgBox.Text
+    if msg ~= "" then
+        table.insert(messages, msg)
+        appendLog("Added: "..msg)
+        msgBox.Text = ""
+    end
+end)
+
+onBtn.MouseButton1Click:Connect(function()
+    if #messages == 0 then appendLog("No messages to send!") return end
+    running = true
+    appendLog("Auto-chat ON")
+end)
+
+offBtn.MouseButton1Click:Connect(function()
+    running = false
+    appendLog("Auto-chat OFF")
+end)
