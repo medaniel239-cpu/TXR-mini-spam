@@ -1,0 +1,171 @@
+--[[ 
+    UNIVERSAL GD   Made by TXR_ASHU
+    Instagram: lxdanny_
+    Purpose: UI + logic demo (NO CHAT SPAM, NO EXPLOIT)
+]]
+
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+
+-- ================= UI SETUP =================
+local gui = Instance.new("ScreenGui")
+gui.Name = "LuxuryDemoGUI"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
+
+local main = Instance.new("Frame", gui)
+main.Size = UDim2.fromScale(0.32, 0.45)
+main.Position = UDim2.fromScale(0.34, 0.27)
+main.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+main.BorderSizePixel = 0
+main.Name = "Main"
+
+local corner = Instance.new("UICorner", main)
+corner.CornerRadius = UDim.new(0, 18)
+
+local stroke = Instance.new("UIStroke", main)
+stroke.Color = Color3.fromRGB(120, 120, 140)
+stroke.Thickness = 1
+stroke.Transparency = 0.4
+
+-- ================= TITLE =================
+local title = Instance.new("TextLabel", main)
+title.Size = UDim2.fromScale(1, 0.12)
+title.BackgroundTransparency = 1
+title.Text = "Luxury Message Tool (Demo)"
+title.Font = Enum.Font.GothamBold
+title.TextSize = 20
+title.TextColor3 = Color3.fromRGB(230,230,240)
+
+local credit = Instance.new("TextLabel", main)
+credit.Position = UDim2.fromScale(0, 0.12)
+credit.Size = UDim2.fromScale(1, 0.06)
+credit.BackgroundTransparency = 1
+credit.Text = "Made by TXR_ASHU  |  IG: lxdanny_"
+credit.Font = Enum.Font.Gotham
+credit.TextSize = 12
+credit.TextColor3 = Color3.fromRGB(160,160,180)
+
+-- ================= INPUTS =================
+local function makeBox(y, placeholder)
+    local box = Instance.new("TextBox", main)
+    box.Position = UDim2.fromScale(0.05, y)
+    box.Size = UDim2.fromScale(0.9, 0.09)
+    box.PlaceholderText = placeholder
+    box.Text = ""
+    box.Font = Enum.Font.Gotham
+    box.TextSize = 14
+    box.TextColor3 = Color3.fromRGB(230,230,230)
+    box.BackgroundColor3 = Color3.fromRGB(35,35,45)
+    box.BorderSizePixel = 0
+    Instance.new("UICorner", box).CornerRadius = UDim.new(0, 10)
+    return box
+end
+
+local targetBox = makeBox(0.22, "Target Player Name (optional)")
+local messageBox = makeBox(0.33, "Your custom message here")
+
+-- ================= LOG AREA =================
+local log = Instance.new("TextLabel", main)
+log.Position = UDim2.fromScale(0.05, 0.44)
+log.Size = UDim2.fromScale(0.9, 0.18)
+log.BackgroundColor3 = Color3.fromRGB(25,25,35)
+log.TextWrapped = true
+log.TextYAlignment = Top
+log.TextXAlignment = Left
+log.Text = "Status log will appear here..."
+log.Font = Enum.Font.Code
+log.TextSize = 13
+log.TextColor3 = Color3.fromRGB(200,200,210)
+log.BorderSizePixel = 0
+Instance.new("UICorner", log).CornerRadius = UDim.new(0, 10)
+
+-- ================= BUTTONS =================
+local function makeButton(y, text)
+    local b = Instance.new("TextButton", main)
+    b.Position = UDim2.fromScale(0.05, y)
+    b.Size = UDim2.fromScale(0.42, 0.1)
+    b.Text = text
+    b.Font = Enum.Font.GothamBold
+    b.TextSize = 14
+    b.TextColor3 = Color3.fromRGB(20,20,25)
+    b.BackgroundColor3 = Color3.fromRGB(180,180,220)
+    b.BorderSizePixel = 0
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 12)
+    return b
+end
+
+local onBtn  = makeButton(0.65, "ON")
+local offBtn = makeButton(0.65, "OFF")
+offBtn.Position = UDim2.fromScale(0.53, 0.65)
+
+local extraBtn = Instance.new("TextButton", main)
+extraBtn.Position = UDim2.fromScale(0.05, 0.78)
+extraBtn.Size = UDim2.fromScale(0.9, 0.1)
+extraBtn.Text = "Send Extra Message"
+extraBtn.Font = Enum.Font.GothamBold
+extraBtn.TextSize = 14
+extraBtn.TextColor3 = Color3.fromRGB(230,230,240)
+extraBtn.BackgroundColor3 = Color3.fromRGB(60,60,90)
+extraBtn.BorderSizePixel = 0
+Instance.new("UICorner", extraBtn).CornerRadius = UDim.new(0, 12)
+
+-- ================= COLLAPSE BUTTON =================
+local toggleGui = Instance.new("TextButton", gui)
+toggleGui.Size = UDim2.fromScale(0.05, 0.08)
+toggleGui.Position = UDim2.fromScale(0.01, 0.45)
+toggleGui.Text = "≡"
+toggleGui.Font = Enum.Font.GothamBold
+toggleGui.TextSize = 22
+toggleGui.TextColor3 = Color3.fromRGB(230,230,240)
+toggleGui.BackgroundColor3 = Color3.fromRGB(30,30,40)
+toggleGui.BorderSizePixel = 0
+Instance.new("UICorner", toggleGui).CornerRadius = UDim.new(0, 12)
+
+-- ================= LOGIC =================
+local running = false
+local spamDelay = 0.33 -- 1 second me 3 (FAST)
+
+local function appendLog(txt)
+    log.Text = log.Text .. "\n" .. txt
+end
+
+local function targetExists(name)
+    if name == "" then return true end
+    return Players:FindFirstChild(name) ~= nil
+end
+
+task.spawn(function()
+    while true do
+        task.wait(spamDelay)
+        if running then
+            local target = targetBox.Text
+            if not targetExists(target) then
+                appendLog("Target left. Auto-stopped.")
+                running = false
+            else
+                appendLog("Sent (demo): " .. (messageBox.Text ~= "" and messageBox.Text or "[empty]"))
+            end
+        end
+    end
+end)
+
+-- ================= BUTTON EVENTS =================
+onBtn.MouseButton1Click:Connect(function()
+    running = true
+    appendLog("ON enabled.")
+end)
+
+offBtn.MouseButton1Click:Connect(function()
+    running = false
+    appendLog("OFF pressed.")
+end)
+
+extraBtn.MouseButton1Click:Connect(function()
+    appendLog("Extra sent (demo): ainhoekwodbofnekdnfofnfifbfkfndbkdbf")
+end)
+
+toggleGui.MouseButton1Click:Connect(function()
+    main.Visible = not main.Visible
+end)
