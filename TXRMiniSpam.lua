@@ -1,18 +1,17 @@
--- SERVICES
+-- Nothing Mini Spam – Fixed & Working for Delta Android 2026 by txr ashu
 local Players = game:GetService("Players")
 local TextChatService = game:GetService("TextChatService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 
--- PLAYER
-local player = Players.LocalPlayer or Players:GetPlayers()[1]
+local player = Players.LocalPlayer
 if not player then return end
 
--- STATE
 local spamming = false
 local spamConnection = nil
+local msgIndex = 1
 
--- RANDOM MESSAGES
 local messages = {
     "Ready, nothing mini spammer loaded",
     "Ki sis hamari raat ka toy hai",
@@ -27,33 +26,41 @@ local messages = {
     "--t-e-r-y--m-а-қ-і--қ-а-І-і--|0-h-a-t-i---i-l-i--c-h-x-t-",
     "--เทา-ล-c-c-h-e-r--қ-i--j-h-a-n-t-"
 }
-local msgIndex = 1
 
--- CHAT SENDER
-local input  -- Global
-local function sendMessage(text)
-    text = input.Text .. " " .. text
+local inputBox -- global for sendMessage
+
+local function sendMessage(msg)
+    local fullMsg = (inputBox.Text \~= "" and inputBox.Text .. " " or "") .. msg
     
+    -- Legacy chat (most games)
     pcall(function()
-        local events = ReplicatedStorage:WaitForChild("DefaultChatSystemChatEvents", 5)
-        local request = events:WaitForChild("SayMessageRequest", 5)
-        request:FireServer(text, "All")
+        local chatEvents = ReplicatedStorage:FindFirstChild("DefaultChatSystemChatEvents")
+        if chatEvents then
+            local sayRequest = chatEvents:FindFirstChild("SayMessageRequest")
+            if sayRequest then
+                sayRequest:FireServer(fullMsg, "All")
+            end
+        end
     end)
     
+    -- New TextChatService (fallback)
     pcall(function()
-        local channel = TextChatService:WaitForChild("TextChannels"):WaitForChild("RBXGeneral", 5)
-        if channel then channel:SendAsync(text) end
+        local channels = TextChatService:FindFirstChild("TextChannels")
+        if channels then
+            local general = channels:FindFirstChild("RBXGeneral")
+            if general then
+                general:SendAsync(fullMsg)
+            end
+        end
     end)
 end
 
--- SPAM LOOP
 local function startSpam()
     if spamConnection then return end
-    spamConnection = game:GetService("RunService").Heartbeat:Connect(function()
-        if spamming and input.Text \~= "" then
-            local msg = messages[msgIndex]
-            sendMessage(msg)
-            msgIndex = (msgIndex % #messages) + 1
+    spamConnection = RunService.Heartbeat:Connect(function()
+        if spamming and inputBox and inputBox.Text \~= "" then
+            sendMessage(messages[msgIndex])
+            msgIndex = ((msgIndex % #messages) + 1)
         end
     end)
 end
@@ -71,142 +78,149 @@ gui.Name = "NothingMiniSpam"
 gui.ResetOnSpawn = false
 gui.Parent = game.CoreGui
 
-local frame = Instance.new("Frame", gui)
+local frame = Instance.new("Frame")
 frame.Size = UDim2.fromScale(0.35, 0.35)
 frame.Position = UDim2.fromScale(0.125, 0.3)
 frame.BackgroundColor3 = Color3.fromRGB(15,15,15)
 frame.BorderSizePixel = 0
 frame.Active = true
+frame.Parent = gui
 
--- DRAG FRAME
+-- Drag
 local dragging, dragStart, startPos
-frame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+frame.InputBegan:Connect(function(inp)
+    if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then
         dragging = true
-        dragStart = input.Position
+        dragStart = inp.Position
         startPos = frame.Position
     end
 end)
-frame.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+frame.InputEnded:Connect(function(inp)
+    if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then
         dragging = false
     end
 end)
-UserInputService.InputChanged:Connect(function(input)
-    if dragging and (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) then
-        local delta = input.Position - dragStart
+UserInputService.InputChanged:Connect(function(inp)
+    if dragging and (inp.UserInputType == Enum.UserInputType.MouseMovement or inp.UserInputType == Enum.UserInputType.Touch) then
+        local delta = inp.Position - dragStart
         frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
     end
 end)
 
--- TITLE
-local title = Instance.new("TextLabel", frame)
+-- Title
+local title = Instance.new("TextLabel")
 title.Size = UDim2.fromScale(1, 0.15)
-title.Position = UDim2.fromScale(0, 0)
 title.BackgroundTransparency = 1
 title.Text = "Nothing Mini Spam 🔥"
 title.TextColor3 = Color3.new(1,1,1)
 title.Font = Enum.Font.GothamBold
 title.TextScaled = true
+title.Parent = frame
 
--- CREDITS
-local credits = Instance.new("TextLabel", frame)
+-- Credits
+local credits = Instance.new("TextLabel")
 credits.Size = UDim2.fromScale(1, 0.1)
 credits.Position = UDim2.fromScale(0, 0.15)
 credits.BackgroundTransparency = 1
 credits.Text = "made by txr ashu"
-credits.TextColor3 = Color3.fromRGB(200, 200, 200)
+credits.TextColor3 = Color3.fromRGB(200,200,200)
 credits.Font = Enum.Font.Gotham
 credits.TextScaled = true
+credits.Parent = frame
 
--- CLOSE
-local close = Instance.new("TextButton", frame)
-close.Size = UDim2.fromScale(0.12, 0.15)
-close.Position = UDim2.fromScale(0.88, 0)
-close.Text = "X"
-close.Font = Enum.Font.GothamBold
-close.TextScaled = true
-close.BackgroundColor3 = Color3.fromRGB(40,40,40)
-close.TextColor3 = Color3.new(1,0,0)
+-- Close
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.fromScale(0.12, 0.15)
+closeBtn.Position = UDim2.fromScale(0.88, 0)
+closeBtn.Text = "X"
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.TextScaled = true
+closeBtn.BackgroundColor3 = Color3.fromRGB(40,40,40)
+closeBtn.TextColor3 = Color3.new(1,0,0)
+closeBtn.Parent = frame
 
--- INPUT
-input = Instance.new("TextBox", frame)
-input.Size = UDim2.fromScale(0.9, 0.22)
-input.Position = UDim2.fromScale(0.05, 0.28)
-input.PlaceholderText = "Target Name (e.g. Gun)"
-input.Text = ""
-input.Font = Enum.Font.Gotham
-input.TextScaled = true
-input.BackgroundColor3 = Color3.fromRGB(25,25,25)
-input.TextColor3 = Color3.new(1,1,1)
+-- Input Box
+inputBox = Instance.new("TextBox")
+inputBox.Size = UDim2.fromScale(0.9, 0.22)
+inputBox.Position = UDim2.fromScale(0.05, 0.28)
+inputBox.PlaceholderText = "Target Name (jaise Gun)"
+inputBox.Text = ""
+inputBox.Font = Enum.Font.Gotham
+inputBox.TextScaled = true
+inputBox.BackgroundColor3 = Color3.fromRGB(25,25,25)
+inputBox.TextColor3 = Color3.new(1,1,1)
+inputBox.Parent = frame
 
--- TOGGLE
-local toggle = Instance.new("TextButton", frame)
-toggle.Size = UDim2.fromScale(0.6, 0.22)
-toggle.Position = UDim2.fromScale(0.2, 0.55)
-toggle.Text = "START"
-toggle.Font = Enum.Font.GothamBold
-toggle.TextScaled = true
-toggle.BackgroundColor3 = Color3.fromRGB(30,30,30)
-toggle.TextColor3 = Color3.new(0,1,0)
+-- Toggle
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Size = UDim2.fromScale(0.6, 0.22)
+toggleBtn.Position = UDim2.fromScale(0.2, 0.55)
+toggleBtn.Text = "START"
+toggleBtn.Font = Enum.Font.GothamBold
+toggleBtn.TextScaled = true
+toggleBtn.BackgroundColor3 = Color3.fromRGB(30,30,30)
+toggleBtn.TextColor3 = Color3.new(0,1,0)
+toggleBtn.Parent = frame
 
--- REOPEN
-local reopen = Instance.new("TextButton", gui)
-reopen.Size = UDim2.fromScale(0.08, 0.08)
-reopen.Position = UDim2.fromScale(0.4, 0.85)
-reopen.Text = "OPEN"
-reopen.Visible = false
-reopen.Font = Enum.Font.GothamBold
-reopen.TextScaled = true
-reopen.BackgroundColor3 = Color3.fromRGB(20,20,20)
-reopen.TextColor3 = Color3.new(1,1,1)
-reopen.Active = true
+-- Reopen
+local reopenBtn = Instance.new("TextButton")
+reopenBtn.Size = UDim2.fromScale(0.08, 0.08)
+reopenBtn.Position = UDim2.fromScale(0.4, 0.85)
+reopenBtn.Text = "OPEN"
+reopenBtn.Visible = false
+reopenBtn.Font = Enum.Font.GothamBold
+reopenBtn.TextScaled = true
+reopenBtn.BackgroundColor3 = Color3.fromRGB(20,20,20)
+reopenBtn.TextColor3 = Color3.new(1,1,1)
+reopenBtn.Active = true
+reopenBtn.Parent = gui
 
--- REOPEN DRAG
+-- Reopen drag
 local rDragging, rStart, rPos
-reopen.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+reopenBtn.InputBegan:Connect(function(inp)
+    if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then
         rDragging = true
-        rStart = input.Position
-        rPos = reopen.Position
+        rStart = inp.Position
+        rPos = reopenBtn.Position
     end
 end)
-reopen.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+reopenBtn.InputEnded:Connect(function(inp)
+    if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then
         rDragging = false
     end
 end)
-UserInputService.InputChanged:Connect(function(input)
-    if rDragging and (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) then
-        local delta = input.Position - rStart
-        reopen.Position = UDim2.new(rPos.X.Scale, rPos.X.Offset + delta.X, rPos.Y.Scale, rPos.Y.Offset + delta.Y)
+UserInputService.InputChanged:Connect(function(inp)
+    if rDragging and (inp.UserInputType == Enum.UserInputType.MouseMovement or inp.UserInputType == Enum.UserInputType.Touch) then
+        local delta = inp.Position - rStart
+        reopenBtn.Position = UDim2.new(rPos.X.Scale, rPos.X.Offset + delta.X, rPos.Y.Scale, rPos.Y.Offset + delta.Y)
     end
 end)
 
--- TOGGLE LOGIC
-toggle.MouseButton1Click:Connect(function()
+-- Toggle Click
+toggleBtn.MouseButton1Click:Connect(function()
     spamming = not spamming
     if spamming then
-        toggle.Text = "STOP"
-        toggle.TextColor3 = Color3.new(1,0,0)
+        toggleBtn.Text = "STOP"
+        toggleBtn.TextColor3 = Color3.new(1,0,0)
         startSpam()
-        print("Spam STARTED on: " .. (input.Text \~= "" and input.Text or "No target"))
+        print("Spam STARTED on: " .. (inputBox.Text \~= "" and inputBox.Text or "No target"))
     else
-        toggle.Text = "START"
-        toggle.TextColor3 = Color3.new(0,1,0)
+        toggleBtn.Text = "START"
+        toggleBtn.TextColor3 = Color3.new(0,1,0)
         stopSpam()
         print("Spam STOPPED")
     end
 end)
 
--- CLOSE/OPEN
-close.MouseButton1Click:Connect(function()
+-- Close / Open
+closeBtn.MouseButton1Click:Connect(function()
     frame.Visible = false
-    reopen.Visible = true
-end)
-reopen.MouseButton1Click:Connect(function()
-    frame.Visible = true
-    reopen.Visible = false
+    reopenBtn.Visible = true
 end)
 
-print("Nothing Mini Spam LOADED by txr ashu! Target daal & START kar 🔥")
+reopenBtn.MouseButton1Click:Connect(function()
+    frame.Visible = true
+    reopenBtn.Visible = false
+end)
+
+print("✅ Nothing Mini Spam LOADED – Target daal aur START daba 🔥")
