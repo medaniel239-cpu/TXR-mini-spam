@@ -190,12 +190,12 @@ toggle.MouseButton1Click:Connect(function()
         toggle.Text = "STOP"
         toggle.TextColor3 = Color3.new(1,0,0)
         startSpam()
-        print("🚀 Spam STARTED on: " .. (input.Text \~= "" and input.Text or "No target"))
+        print("Spam STARTED on: " .. (input.Text \~= "" and input.Text or "No target"))
     else
         toggle.Text = "START"
         toggle.TextColor3 = Color3.new(0,1,0)
         stopSpam()
-        print("⏹️ Spam STOPPED")
+        print("Spam STOPPED")
     end
 end)
 
@@ -209,4 +209,4 @@ reopen.MouseButton1Click:Connect(function()
     reopen.Visible = false
 end)
 
-print("✅ Nothing Mini Spam FIXED & LOADED by txr ashu! Target daal & START kar 🔥")
+print("Nothing Mini Spam FIXED & LOADED by txr ashu! Target daal & START kar 🔥")
