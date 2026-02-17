@@ -12,7 +12,7 @@ if not player then return end
 local spamming = false
 local spamConnection = nil
 
--- FIXED RANDOM MESSAGES (commas added, empties removed, cleaned)
+-- RANDOM MESSAGES
 local messages = {
     "Ready, nothing mini spammer loaded",
     "Ki sis hamari raat ka toy hai",
@@ -29,39 +29,31 @@ local messages = {
 }
 local msgIndex = 1
 
--- BETTER CHAT SENDER (Legacy + New fallback, works everywhere)
-local input  -- Global for sendMessage
+-- BETTER CHAT SENDER (Legacy + New fallback)
+local input  -- Global
 local function sendMessage(text)
-    text = input.Text .. " " .. text  -- Prepend target
+    text = input.Text .. " " .. text
     
-    -- Try Legacy first (works 99% games)
     pcall(function()
-        local DefaultChatSystemChatEvents = ReplicatedStorage:WaitForChild("DefaultChatSystemChatEvents", 5)
-        local SayMessageRequest = DefaultChatSystemChatEvents:WaitForChild("SayMessageRequest", 5)
-        SayMessageRequest:FireServer(text, "All")
+        local events = ReplicatedStorage:WaitForChild("DefaultChatSystemChatEvents", 5)
+        local request = events:WaitForChild("SayMessageRequest", 5)
+        request:FireServer(text, "All")
     end)
     
-    -- New TextChat fallback
     pcall(function()
         local channel = TextChatService:WaitForChild("TextChannels"):WaitForChild("RBXGeneral", 5)
-        if channel then
-            channel:SendAsync(text)
-        end
+        if channel then channel:SendAsync(text) end
     end)
 end
 
--- SPAM LOOP (Efficient: only when spamming)
+-- SPAM LOOP
 local function startSpam()
     if spamConnection then return end
     spamConnection = game:GetService("RunService").Heartbeat:Connect(function()
         if spamming and input.Text \~= "" then
             local msg = messages[msgIndex]
             sendMessage(msg)
-            
-            msgIndex = msgIndex + 1
-            if msgIndex > #messages then
-                msgIndex = 1
-            end
+            msgIndex = (msgIndex % #messages) + 1
         end
     end)
 end
@@ -73,7 +65,7 @@ local function stopSpam()
     end
 end
 
--- GUI (same as yours, minor tweaks)
+-- GUI
 local gui = Instance.new("ScreenGui")
 gui.Name = "NothingMiniSpam"
 gui.ResetOnSpawn = false
@@ -86,7 +78,7 @@ frame.BackgroundColor3 = Color3.fromRGB(15,15,15)
 frame.BorderSizePixel = 0
 frame.Active = true
 
--- DRAG (unchanged)
+-- DRAG FRAME
 local dragging, dragStart, startPos
 frame.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -117,7 +109,7 @@ title.TextColor3 = Color3.new(1,1,1)
 title.Font = Enum.Font.GothamBold
 title.TextScaled = true
 
--- CREDITS 🔥 NEW!
+-- CREDITS
 local credits = Instance.new("TextLabel", frame)
 credits.Size = UDim2.fromScale(1, 0.1)
 credits.Position = UDim2.fromScale(0, 0.15)
@@ -137,7 +129,7 @@ close.TextScaled = true
 close.BackgroundColor3 = Color3.fromRGB(40,40,40)
 close.TextColor3 = Color3.new(1,0,0)
 
--- INPUT (Shifted down)
+-- INPUT
 input = Instance.new("TextBox", frame)
 input.Size = UDim2.fromScale(0.9, 0.22)
 input.Position = UDim2.fromScale(0.05, 0.28)
@@ -148,7 +140,7 @@ input.TextScaled = true
 input.BackgroundColor3 = Color3.fromRGB(25,25,25)
 input.TextColor3 = Color3.new(1,1,1)
 
--- TOGGLE (Shifted down)
+-- TOGGLE
 local toggle = Instance.new("TextButton", frame)
 toggle.Size = UDim2.fromScale(0.6, 0.22)
 toggle.Position = UDim2.fromScale(0.2, 0.55)
@@ -158,7 +150,7 @@ toggle.TextScaled = true
 toggle.BackgroundColor3 = Color3.fromRGB(30,30,30)
 toggle.TextColor3 = Color3.new(0,1,0)
 
--- REOPEN BUTTON (unchanged)
+-- REOPEN
 local reopen = Instance.new("TextButton", gui)
 reopen.Size = UDim2.fromScale(0.08, 0.08)
 reopen.Position = UDim2.fromScale(0.4, 0.85)
@@ -170,7 +162,7 @@ reopen.BackgroundColor3 = Color3.fromRGB(20,20,20)
 reopen.TextColor3 = Color3.new(1,1,1)
 reopen.Active = true
 
--- REOPEN DRAG (unchanged)
+-- REOPEN DRAG
 local rDragging, rStart, rPos
 reopen.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -191,14 +183,14 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
--- TOGGLE FUNCTION
+-- TOGGLE LOGIC
 toggle.MouseButton1Click:Connect(function()
     spamming = not spamming
     if spamming then
         toggle.Text = "STOP"
         toggle.TextColor3 = Color3.new(1,0,0)
         startSpam()
-        print("🚀 Spam STARTED on: " .. input.Text)  -- Console confirm
+        print("🚀 Spam STARTED on: " .. (input.Text \~= "" and input.Text or "No target"))
     else
         toggle.Text = "START"
         toggle.TextColor3 = Color3.new(0,1,0)
@@ -217,4 +209,4 @@ reopen.MouseButton1Click:Connect(function()
     reopen.Visible = false
 end)
 
-print("✅ Nothing Mini Spam LOADED by txr ashu! Paste target name & START 🔥")
+print("✅ Nothing Mini Spam FIXED & LOADED by txr ashu! Target daal & START kar 🔥")
