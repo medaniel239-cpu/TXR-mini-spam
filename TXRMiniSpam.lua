@@ -1,4 +1,6 @@
--- Nothing Mini Spam – Fixed & Working for Delta Android 2026 by txr ashu
+-- Nothing Mini Spam - Fixed & Clean Version by txr ashu
+-- Delta Executor Android pe load hone ke liye ready
+
 local Players = game:GetService("Players")
 local TextChatService = game:GetService("TextChatService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -27,30 +29,26 @@ local messages = {
     "--เทา-ล-c-c-h-e-r--қ-i--j-h-a-n-t-"
 }
 
-local inputBox -- global for sendMessage
+local inputBox  -- global
 
 local function sendMessage(msg)
     local fullMsg = (inputBox.Text \~= "" and inputBox.Text .. " " or "") .. msg
     
-    -- Legacy chat (most games)
+    -- Legacy chat
     pcall(function()
-        local chatEvents = ReplicatedStorage:FindFirstChild("DefaultChatSystemChatEvents")
-        if chatEvents then
-            local sayRequest = chatEvents:FindFirstChild("SayMessageRequest")
-            if sayRequest then
-                sayRequest:FireServer(fullMsg, "All")
-            end
+        local events = ReplicatedStorage:FindFirstChild("DefaultChatSystemChatEvents")
+        if events then
+            local req = events:FindFirstChild("SayMessageRequest")
+            if req then req:FireServer(fullMsg, "All") end
         end
     end)
     
-    -- New TextChatService (fallback)
+    -- New chat
     pcall(function()
         local channels = TextChatService:FindFirstChild("TextChannels")
         if channels then
-            local general = channels:FindFirstChild("RBXGeneral")
-            if general then
-                general:SendAsync(fullMsg)
-            end
+            local gen = channels:FindFirstChild("RBXGeneral")
+            if gen then gen:SendAsync(fullMsg) end
         end
     end)
 end
@@ -60,7 +58,7 @@ local function startSpam()
     spamConnection = RunService.Heartbeat:Connect(function()
         if spamming and inputBox and inputBox.Text \~= "" then
             sendMessage(messages[msgIndex])
-            msgIndex = ((msgIndex % #messages) + 1)
+            msgIndex = (msgIndex % #messages) + 1
         end
     end)
 end
@@ -139,7 +137,7 @@ closeBtn.BackgroundColor3 = Color3.fromRGB(40,40,40)
 closeBtn.TextColor3 = Color3.new(1,0,0)
 closeBtn.Parent = frame
 
--- Input Box
+-- Input
 inputBox = Instance.new("TextBox")
 inputBox.Size = UDim2.fromScale(0.9, 0.22)
 inputBox.Position = UDim2.fromScale(0.05, 0.28)
@@ -184,43 +182,4 @@ reopenBtn.InputBegan:Connect(function(inp)
         rPos = reopenBtn.Position
     end
 end)
-reopenBtn.InputEnded:Connect(function(inp)
-    if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then
-        rDragging = false
-    end
-end)
-UserInputService.InputChanged:Connect(function(inp)
-    if rDragging and (inp.UserInputType == Enum.UserInputType.MouseMovement or inp.UserInputType == Enum.UserInputType.Touch) then
-        local delta = inp.Position - rStart
-        reopenBtn.Position = UDim2.new(rPos.X.Scale, rPos.X.Offset + delta.X, rPos.Y.Scale, rPos.Y.Offset + delta.Y)
-    end
-end)
-
--- Toggle Click
-toggleBtn.MouseButton1Click:Connect(function()
-    spamming = not spamming
-    if spamming then
-        toggleBtn.Text = "STOP"
-        toggleBtn.TextColor3 = Color3.new(1,0,0)
-        startSpam()
-        print("Spam STARTED on: " .. (inputBox.Text \~= "" and inputBox.Text or "No target"))
-    else
-        toggleBtn.Text = "START"
-        toggleBtn.TextColor3 = Color3.new(0,1,0)
-        stopSpam()
-        print("Spam STOPPED")
-    end
-end)
-
--- Close / Open
-closeBtn.MouseButton1Click:Connect(function()
-    frame.Visible = false
-    reopenBtn.Visible = true
-end)
-
-reopenBtn.MouseButton1Click:Connect(function()
-    frame.Visible = true
-    reopenBtn.Visible = false
-end)
-
-print("✅ Nothing Mini Spam LOADED – Target daal aur START daba 🔥")
+reopenBtn.InputEnded
