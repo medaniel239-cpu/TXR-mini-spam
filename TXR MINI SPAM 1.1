@@ -1,0 +1,464 @@
+-- SERVICES
+local Players = game:GetService("Players")
+local TextChatService = game:GetService("TextChatService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+
+-- PLAYER
+local player = Players.LocalPlayer or Players:GetPlayers()[1]
+if not player then return end
+
+-- STATE
+local spamming = false
+local spamSpeed = 3
+local messageCount = 0
+local spamStarted = false
+local randomMode = false
+
+-- TELEGRAM
+local TELEGRAM = "@lxdanny"
+
+-- ========== SIMPLE 2-FILTER BYPASS ==========
+local function simpleBypass(text)
+    -- Sirf 2 simple filters - readable bhi rahe, tags bhi na aaye
+    
+    -- Filter 1: Small Caps (most readable)
+    local smallcaps = {
+        ['a']='ᴀ', ['b']='ʙ', ['c']='ᴄ', ['d']='ᴅ', ['e']='ᴇ',
+        ['f']='ꜰ', ['g']='ɢ', ['h']='ʜ', ['i']='ɪ', ['j']='ᴊ',
+        ['k']='ᴋ', ['l']='ʟ', ['m']='ᴍ', ['n']='ɴ', ['o']='ᴏ',
+        ['p']='ᴘ', ['q']='ǫ', ['r']='ʀ', ['s']='s', ['t']='ᴛ',
+        ['u']='ᴜ', ['v']='ᴠ', ['w']='ᴡ', ['x']='x', ['y']='ʏ', ['z']='ᴢ',
+    }
+    
+    -- Filter 2: Fullwidth (normal jaisa dikhta hai)
+    local fullwidth = {
+        ['a']='ａ', ['b']='ｂ', ['c']='ｃ', ['d']='ｄ', ['e']='ｅ',
+        ['f']='ｆ', ['g']='ｇ', ['h']='ｈ', ['i']='ｉ', ['j']='ｊ',
+        ['k']='ｋ', ['l']='ｌ', ['m']='ｍ', ['n']='ｎ', ['o']='ｏ',
+        ['p']='ｐ', ['q']='ｑ', ['r']='ｒ', ['s']='ｓ', ['t']='ｔ',
+        ['u']='ｕ', ['v']='ｖ', ['w']='ｗ', ['x']='ｘ', ['y']='ｙ', ['z']='ｚ',
+    }
+    
+    -- Randomly choose filter (50-50 chance)
+    local useSmallCaps = math.random(1,2) == 1
+    local selected = useSmallCaps and smallcaps or fullwidth
+    
+    local result = ""
+    for i = 1, #text do
+        local char = text:sub(i,i)
+        local lowerChar = char:lower()
+        if selected[lowerChar] then
+            -- Check if original was uppercase
+            if char == char:upper() and char:match("%a") then
+                result = result .. selected[lowerChar]:upper()
+            else
+                result = result .. selected[lowerChar]
+            end
+        else
+            result = result .. char
+        end
+    end
+    return result
+end
+
+-- ========== MESSAGES ==========
+local messages = {
+    "bsdk teri maa ka bhosda",
+    "mc teri gaand marunga",
+    "bkl teri maa ka bhosda",
+    "randibaaz teri maa ki chut",
+    "harami sala kutta ka bacha",
+    "gandu teri maa ko chod diya",
+    "chutiye sala teri behen ki chut",
+    "teri maa ka bhosda haramzade",
+    "saala kutta mc",
+    "teri gaand me danda dalenge",
+    "bsdk kitna rota hai",
+    "mc teri aukat nahi hai",
+    "bkl teri gaand me",
+    "halak me danda mc",
+    "ghore ka baccha bsdk",
+    "raat ka toy bkl",
+    "bathroom me pela mc",
+    "japanese tel bsdk",
+    "kutte ki aulad gandu",
+    "nunu kat dunga bsdk",
+}
+local msgIndex = 1
+local lastMessage = ""
+
+-- GUI
+local gui = Instance.new("ScreenGui")
+gui.Name = "TXR_ASHU_Spammer"
+gui.ResetOnSpawn = false
+gui.Parent = game.CoreGui
+
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.fromScale(0.4, 0.45)
+frame.Position = UDim2.fromScale(0.125, 0.25)
+frame.BackgroundColor3 = Color3.fromRGB(15,15,15)
+frame.BorderSizePixel = 0
+frame.Active = true
+local frameCorner = Instance.new("UICorner", frame)
+frameCorner.CornerRadius = UDim.new(0, 8)
+
+-- DRAG
+local dragging, dragStart, startPos
+frame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = frame.Position
+    end
+end)
+frame.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) then
+        local delta = input.Position - dragStart
+        frame.Position = UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+-- TITLE BAR
+local titleBar = Instance.new("Frame", frame)
+titleBar.Size = UDim2.fromScale(1, 0.12)
+titleBar.BackgroundColor3 = Color3.fromRGB(25,25,25)
+titleBar.BorderSizePixel = 0
+local titleCorner = Instance.new("UICorner", titleBar)
+titleCorner.CornerRadius = UDim.new(0, 8)
+
+local title = Instance.new("TextLabel", titleBar)
+title.Size = UDim2.fromScale(0.4, 1)
+title.Position = UDim2.fromScale(0.05, 0)
+title.BackgroundTransparency = 1
+title.Text = "⚡ TXR_ASHU ⚡"
+title.TextColor3 = Color3.fromRGB(255, 200, 0)
+title.Font = Enum.Font.GothamBold
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.TextScaled = true
+
+-- Telegram Button
+local teleBtn = Instance.new("TextButton", titleBar)
+teleBtn.Size = UDim2.fromScale(0.25, 0.8)
+teleBtn.Position = UDim2.fromScale(0.5, 0.1)
+teleBtn.Text = "✈️ @lxdanny"
+teleBtn.Font = Enum.Font.GothamBold
+teleBtn.TextScaled = true
+teleBtn.BackgroundColor3 = Color3.fromRGB(0, 136, 204)
+teleBtn.TextColor3 = Color3.new(1,1,1)
+local teleCorner = Instance.new("UICorner", teleBtn)
+teleCorner.CornerRadius = UDim.new(0, 15)
+
+teleBtn.MouseButton1Click:Connect(function()
+    setclipboard(TELEGRAM)
+    teleBtn.Text = "✅ Copied!"
+    task.wait(1)
+    teleBtn.Text = "✈️ @lxdanny"
+end)
+
+-- CLOSE
+local close = Instance.new("TextButton", titleBar)
+close.Size = UDim2.fromScale(0.08, 0.6)
+close.Position = UDim2.fromScale(0.96, 0.2)
+close.Text = "✕"
+close.Font = Enum.Font.GothamBold
+close.TextScaled = true
+close.BackgroundColor3 = Color3.fromRGB(40,40,40)
+close.TextColor3 = Color3.fromRGB(255, 70, 70)
+local closeCorner = Instance.new("UICorner", close)
+closeCorner.CornerRadius = UDim.new(0, 4)
+
+-- CONTENT
+local content = Instance.new("Frame", frame)
+content.Size = UDim2.fromScale(1, 0.88)
+content.Position = UDim2.fromScale(0, 0.12)
+content.BackgroundTransparency = 1
+
+-- INPUT
+local input = Instance.new("TextBox", content)
+input.Size = UDim2.fromScale(0.9, 0.15)
+input.Position = UDim2.fromScale(0.05, 0.03)
+input.PlaceholderText = "👤 Target Name"
+input.Text = ""
+input.Font = Enum.Font.Gotham
+input.TextScaled = true
+input.BackgroundColor3 = Color3.fromRGB(25,25,25)
+input.TextColor3 = Color3.new(1,1,1)
+local inputCorner = Instance.new("UICorner", input)
+inputCorner.CornerRadius = UDim.new(0, 6)
+
+-- FILTER INFO
+local filterInfo = Instance.new("TextLabel", content)
+filterInfo.Size = UDim2.fromScale(0.9, 0.08)
+filterInfo.Position = UDim2.fromScale(0.05, 0.19)
+filterInfo.BackgroundTransparency = 1
+filterInfo.Text = "🔍 2-Filter Bypass: Small Caps / Fullwidth"
+filterInfo.TextColor3 = Color3.fromRGB(0, 255, 200)
+filterInfo.Font = Enum.Font.Gotham
+filterInfo.TextScaled = true
+
+-- SPEED CONTROL
+local speedLabel = Instance.new("TextLabel", content)
+speedLabel.Size = UDim2.fromScale(0.3, 0.1)
+speedLabel.Position = UDim2.fromScale(0.05, 0.28)
+speedLabel.BackgroundTransparency = 1
+speedLabel.Text = "⚡ Speed"
+speedLabel.TextColor3 = Color3.fromRGB(200,200,200)
+speedLabel.Font = Enum.Font.GothamBold
+speedLabel.TextXAlignment = Enum.TextXAlignment.Left
+speedLabel.TextScaled = true
+
+local speedDown = Instance.new("TextButton", content)
+speedDown.Size = UDim2.fromScale(0.15, 0.1)
+speedDown.Position = UDim2.fromScale(0.35, 0.28)
+speedDown.Text = "−"
+speedDown.Font = Enum.Font.GothamBold
+speedDown.TextScaled = true
+speedDown.BackgroundColor3 = Color3.fromRGB(40,40,40)
+speedDown.TextColor3 = Color3.new(1,1,1)
+local downCorner = Instance.new("UICorner", speedDown)
+downCorner.CornerRadius = UDim.new(0, 4)
+
+local speedValue = Instance.new("TextLabel", content)
+speedValue.Size = UDim2.fromScale(0.2, 0.1)
+speedValue.Position = UDim2.fromScale(0.52, 0.28)
+speedValue.BackgroundColor3 = Color3.fromRGB(30,30,30)
+speedValue.Text = "3s"
+speedValue.TextColor3 = Color3.fromRGB(255,200,0)
+speedValue.Font = Enum.Font.GothamBold
+speedValue.TextScaled = true
+local valueCorner = Instance.new("UICorner", speedValue)
+valueCorner.CornerRadius = UDim.new(0, 4)
+
+local speedUp = Instance.new("TextButton", content)
+speedUp.Size = UDim2.fromScale(0.15, 0.1)
+speedUp.Position = UDim2.fromScale(0.74, 0.28)
+speedUp.Text = "+"
+speedUp.Font = Enum.Font.GothamBold
+speedUp.TextScaled = true
+speedUp.BackgroundColor3 = Color3.fromRGB(40,40,40)
+speedUp.TextColor3 = Color3.new(1,1,1)
+local upCorner = Instance.new("UICorner", speedUp)
+upCorner.CornerRadius = UDim.new(0, 4)
+
+-- RANDOM MODE
+local randomBtn = Instance.new("TextButton", content)
+randomBtn.Size = UDim2.fromScale(0.4, 0.12)
+randomBtn.Position = UDim2.fromScale(0.1, 0.42)
+randomBtn.Text = "🎲 Sequential"
+randomBtn.Font = Enum.Font.GothamBold
+randomBtn.TextScaled = true
+randomBtn.BackgroundColor3 = Color3.fromRGB(40,40,40)
+randomBtn.TextColor3 = Color3.new(1,1,1)
+local randomCorner = Instance.new("UICorner", randomBtn)
+randomCorner.CornerRadius = UDim.new(0, 6)
+
+-- COUNTER
+local counterLabel = Instance.new("TextLabel", content)
+counterLabel.Size = UDim2.fromScale(0.4, 0.12)
+counterLabel.Position = UDim2.fromScale(0.5, 0.42)
+counterLabel.BackgroundColor3 = Color3.fromRGB(30,30,30)
+counterLabel.Text = "📨 0"
+counterLabel.TextColor3 = Color3.fromRGB(100,255,100)
+counterLabel.Font = Enum.Font.GothamBold
+counterLabel.TextScaled = true
+local counterCorner = Instance.new("UICorner", counterLabel)
+counterCorner.CornerRadius = UDim.new(0, 6)
+
+-- FILTER STATUS
+local filterStatus = Instance.new("TextLabel", content)
+filterStatus.Size = UDim2.fromScale(0.8, 0.1)
+filterStatus.Position = UDim2.fromScale(0.1, 0.55)
+filterStatus.BackgroundColor3 = Color3.fromRGB(30,30,30)
+filterStatus.Text = "🟢 Filter: Active"
+filterStatus.TextColor3 = Color3.fromRGB(100,255,100)
+filterStatus.Font = Enum.Font.GothamBold
+filterStatus.TextScaled = true
+local statusCorner = Instance.new("UICorner", filterStatus)
+statusCorner.CornerRadius = UDim.new(0, 6)
+
+-- MAIN BUTTONS
+local toggle = Instance.new("TextButton", content)
+toggle.Size = UDim2.fromScale(0.4, 0.15)
+toggle.Position = UDim2.fromScale(0.1, 0.7)
+toggle.Text = "🚀 START"
+toggle.Font = Enum.Font.GothamBold
+toggle.TextScaled = true
+toggle.BackgroundColor3 = Color3.fromRGB(0,150,0)
+toggle.TextColor3 = Color3.new(1,1,1)
+local toggleCorner = Instance.new("UICorner", toggle)
+toggleCorner.CornerRadius = UDim.new(0, 8)
+
+local spamOnce = Instance.new("TextButton", content)
+spamOnce.Size = UDim2.fromScale(0.4, 0.15)
+spamOnce.Position = UDim2.fromScale(0.5, 0.7)
+spamOnce.Text = "⚡ SPAM ONCE"
+spamOnce.Font = Enum.Font.GothamBold
+spamOnce.TextScaled = true
+spamOnce.BackgroundColor3 = Color3.fromRGB(150,50,150)
+spamOnce.TextColor3 = Color3.new(1,1,1)
+local onceCorner = Instance.new("UICorner", spamOnce)
+onceCorner.CornerRadius = UDim.new(0, 8)
+
+-- REOPEN BUTTON
+local reopen = Instance.new("TextButton", gui)
+reopen.Size = UDim2.fromScale(0.08, 0.08)
+reopen.Position = UDim2.fromScale(0.4, 0.85)
+reopen.Text = "⚡"
+reopen.Visible = false
+reopen.Font = Enum.Font.GothamBold
+reopen.TextScaled = true
+reopen.BackgroundColor3 = Color3.fromRGB(255,200,0)
+reopen.TextColor3 = Color3.new(0,0,0)
+local reopenCorner = Instance.new("UICorner", reopen)
+reopenCorner.CornerRadius = UDim.new(1, 0)
+
+-- DRAG REOPEN
+local rDragging, rStart, rPos
+reopen.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        rDragging = true
+        rStart = input.Position
+        rPos = reopen.Position
+    end
+end)
+reopen.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        rDragging = false
+    end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if rDragging and (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) then
+        local delta = input.Position - rStart
+        reopen.Position = UDim2.new(
+            rPos.X.Scale,
+            rPos.X.Offset + delta.X,
+            rPos.Y.Scale,
+            rPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+-- ========== FUNCTIONS ==========
+local function sendMessage(text)
+    local channel = TextChatService.TextChannels.RBXGeneral
+    if channel then
+        local filtered = simpleBypass(text)
+        channel:SendAsync(filtered)
+        messageCount = messageCount + 1
+        counterLabel.Text = "📨 " .. messageCount
+    end
+end
+
+-- SPAM LOOP
+task.spawn(function()
+    while true do
+        if spamming and input.Text ~= "" then
+            local msg
+            
+            -- Send startup message first time only
+            if not spamStarted then
+                msg = "TXR_ASHU mini spam start"
+                spamStarted = true
+            else
+                -- Normal message selection (prevents double spam)
+                repeat
+                    if randomMode then
+                        msg = messages[math.random(1, #messages)]
+                    else
+                        msg = messages[msgIndex]
+                        msgIndex = msgIndex + 1
+                        if msgIndex > #messages then
+                            msgIndex = 1
+                        end
+                    end
+                until msg ~= lastMessage
+                
+                lastMessage = msg
+            end
+            
+            local fullMessage = input.Text .. " " .. msg
+            sendMessage(fullMessage)
+            task.wait(spamSpeed)
+        else
+            task.wait(1)
+        end
+    end
+end)
+
+-- SPEED CONTROLS
+speedDown.MouseButton1Click:Connect(function()
+    spamSpeed = math.max(1, spamSpeed - 0.5)
+    speedValue.Text = spamSpeed .. "s"
+end)
+speedUp.MouseButton1Click:Connect(function()
+    spamSpeed = math.min(10, spamSpeed + 0.5)
+    speedValue.Text = spamSpeed .. "s"
+end)
+
+-- RANDOM MODE TOGGLE
+randomBtn.MouseButton1Click:Connect(function()
+    randomMode = not randomMode
+    if randomMode then
+        randomBtn.Text = "🎲 Random"
+        randomBtn.BackgroundColor3 = Color3.fromRGB(0,100,0)
+    else
+        randomBtn.Text = "🎲 Sequential"
+        randomBtn.BackgroundColor3 = Color3.fromRGB(40,40,40)
+    end
+end)
+
+-- TOGGLE SPAM
+toggle.MouseButton1Click:Connect(function()
+    spamming = not spamming
+    if spamming then
+        toggle.Text = "⛔ STOP"
+        toggle.BackgroundColor3 = Color3.fromRGB(150,0,0)
+        spamStarted = false
+    else
+        toggle.Text = "🚀 START"
+        toggle.BackgroundColor3 = Color3.fromRGB(0,150,0)
+    end
+end)
+
+-- SPAM ONCE
+spamOnce.MouseButton1Click:Connect(function()
+    if input.Text ~= "" then
+        sendMessage(input.Text .. " abakxbkdbdksbskdbxkdbsksbksbd")
+    else
+        sendMessage("abakxbkdbdksbskdbxkdbsksbksbd")
+    end
+end)
+
+-- CLOSE/OPEN
+close.MouseButton1Click:Connect(function()
+    frame.Visible = false
+    reopen.Visible = true
+end)
+reopen.MouseButton1Click:Connect(function()
+    frame.Visible = true
+    reopen.Visible = false
+end)
+
+-- Pulse animation
+task.spawn(function()
+    while true do
+        if reopen.Visible then
+            TweenService:Create(reopen, TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {Size = UDim2.fromScale(0.1, 0.1)}):Play()
+        end
+        task.wait(2)
+    end
+end)
+
+print("✅ TXR_ASHU Spammer - Simple 2-Filter Bypass")
+print("✈️ Telegram: @lxdanny")
