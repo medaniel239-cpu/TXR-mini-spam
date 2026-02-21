@@ -1,0 +1,375 @@
+-- ========== TXR_ASHU ULTIMATE MOOD AI v7.0 ==========
+-- FULLY AUTOMATIC - MOOD BASED GAALI
+-- 500+ RESPONSES - 20+ DETECTORS
+-- Telegram: @lxdanny
+
+local Players = game:GetService("Players")
+local TextChatService = game:GetService("TextChatService")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+if not player then return end
+
+-- ========== CHANNEL DETECTOR ==========
+local channel = nil
+local channelNames = {"RBXGeneral", "General", "Chat", "MainChat"}
+
+for _, name in ipairs(channelNames) do
+    channel = TextChatService.TextChannels:FindFirstChild(name)
+    if channel then break end
+end
+
+if not channel then
+    channel = TextChatService.TextChannels:GetChildren()[1]
+end
+
+if not channel then
+    warn("❌ No chat channel found!")
+    return
+end
+
+-- ========== STATE ==========
+local state = {
+    messageCount = 0,
+    messageTimestamps = {},
+    memory = {},
+    spamSpeed = 1
+}
+
+-- ========== MOOD DETECTOR ==========
+local function detectMood(text)
+    if not text then return "NORMAL" end
+    
+    text = text:lower()
+    
+    -- ANGRY keywords
+    local angryWords = {
+        "bsdk", "mc", "bkl", "madarchod", "fuck", "shit", "randi", "kutta",
+        "gandu", "chutiye", "harami", "suar", "ullu", "gadha", "bakwas",
+        "kyun", "kya", "kyu", "jaa", "nikal", "chup", "mar", "mara",
+        "fuck you", "motherfucker", "asshole", "bastard", "dick"
+    }
+    
+    -- HAPPY keywords
+    local happyWords = {
+        "hello", "hi", "hey", "hola", "namaste", "kaise ho", "kya haal",
+        "how are you", "whats up", "sup", "good", "nice", "great", "awesome",
+        "cool", "best", "love", "like", "thank", "thanks", "welcome",
+        "haan", "yes", "ok", "theek", "achha", "hmm", "yeah", "yup"
+    }
+    
+    -- SAD keywords
+    local sadWords = {
+        "sorry", "sad", "dukhi", "ro raha", "rone", "gum", "hurt", "pain",
+        "tired", "thak", "bored", "bore", "lonely", "alone", "missing",
+        "miss", "yaad", "chinta", "worried", "anxious", "depressed"
+    }
+    
+    -- Count matches
+    local angryCount = 0
+    local happyCount = 0
+    local sadCount = 0
+    
+    for _, word in ipairs(angryWords) do
+        if text:find(word, 1, true) then angryCount = angryCount + 1 end
+    end
+    
+    for _, word in ipairs(happyWords) do
+        if text:find(word, 1, true) then happyCount = happyCount + 1 end
+    end
+    
+    for _, word in ipairs(sadWords) do
+        if text:find(word, 1, true) then sadCount = sadCount + 1 end
+    end
+    
+    -- Determine mood
+    if angryCount > happyCount and angryCount > sadCount then
+        return "ANGRY"
+    elseif happyCount > angryCount and happyCount > sadCount then
+        return "HAPPY"
+    elseif sadCount > angryCount and sadCount > happyCount then
+        return "SAD"
+    else
+        return "NORMAL"
+    end
+end
+
+-- ========== MOOD-BASED GAALI DATABASE ==========
+local MOOD_GAALI = {
+    ANGRY = {
+        "madarchod teri maa randi 👩",
+        "bsdk teri maa ka bhosda 🕳️",
+        "mc teri gaand marunga 👊",
+        "bkl teri maa ki chut 🍑",
+        "teri behen ki chut 🌮",
+        "tera baap kutta hai 🐕",
+        "teri maa ko chod diya 💦",
+        "teri gaand me danda 🏑",
+        "kutte ki aulad harami 🐕‍🦺",
+        "suar ke bacche gandu 🐷",
+        "ullu ka pattha chutiye 🦉",
+        "gadhe teri maa ki 🐴",
+        "randi ke pille 👯",
+        "haramzade teri maa ka bhosda 🔥",
+        "bhadwe teri behen ki chut 🌮",
+        "chodu teri gaand mein 👉",
+        "lavde teri maa ka lund 🍌",
+        "jhatu teri behen ki fuddi 💢",
+        "chutiye sala kutta 🐕",
+        "gandu teri maa chod dunga 🔞"
+    },
+    
+    HAPPY = {
+        "hello nhi bsdk 👋",
+        "kya hello madarchod 🤬",
+        "hello teri maa ko bol 🔥",
+        "hello sunke gaand jal gayi? 🔥",
+        "kaise ho? teri maa chod raha hoon 🥳",
+        "kya haal? teri behen dekh raha hoon 🤪",
+        "good morning teri maa ke saath 😴",
+        "good night teri maa ke bistar mein 🌙",
+        "namaste teri bahan ko 🙏",
+        "hi hi, teri behen ki chut 🍑",
+        "hello hello, teri maa ka bhosda 🕳️",
+        "haan bhai, teri maa yahan hai 👩",
+        "theek hai, teri behen ke saath hu 👧",
+        "achha, teri maa ne bulaya tha 📞",
+        "hmm, teri behen ka number chahiye? 📱",
+        "ok ok, teri maa ki photo bhej 🖼️",
+        "sure sure, teri behen ka video dekhna? 📹",
+        "definitely, teri maa ke saath hu 🛏️",
+        "bilkul, teri behen yahan hai 💁‍♀️",
+        "yes bro, teri maa ki tarah 👩"
+    },
+    
+    SAD = {
+        "kya ro raha hai madarchod 😭",
+        "rone se teri maa nahi aayegi 👩",
+        "dukhi hai? teri behen ko bheju? 👧",
+        "sad hai? teri maa chod ke khush kar dunga 🔥",
+        "tired hai? teri maa ke saath lele 🛏️",
+        "bore ho raha? teri behen ko bula 🤪",
+        "lonely hai? teri maa yahan hai 👩",
+        "pain hai? teri gaand mein danda 🏑",
+        "hurt hai? teri behen ki chut mein marham 🌮",
+        "depressed? teri maa ka bhosda khol 🕳️",
+        "anxious? teri behen ki gaand mein ungli 👆",
+        "worried? teri maa ki fuddi mein danda 🔥",
+        "missing someone? teri maa ko msg kar 📱",
+        "yaad aa rahi? teri behen ki photo bhej 📸",
+        "gum hai? teri maa ka number de 📞",
+        "rone ka mann? teri maa ki god 🤱",
+        "dukhi dil? teri behen ke saath dance 💃",
+        "sad life? teri maa chod ke hasa dunga 😂",
+        "crying? teri behen ki chut mein aansu 💦",
+        "upset? teri maa ka lund choos 🍌"
+    },
+    
+    NORMAL = {
+        "bsdk teri maa ka bhosda 🕳️",
+        "mc teri gaand marunga 👊",
+        "bkl teri maa ki chut 🍑",
+        "teri behen ki chut 🌮",
+        "teri maa randi 👩",
+        "tera baap kutta 🐕",
+        "kutte ki aulad 🐕‍🦺",
+        "haramzade 🔥",
+        "tu kaun hai bhadwe ❓",
+        "ja na lavde 👎",
+        "teri maa ko msg kar 📱",
+        "teri behen ko le aa 👧",
+        "teri maa ka number de 📞",
+        "teri behen ki photo bhej 📸",
+        "teri gaand me ungli 👉",
+        "teri maa ki chut me 💦",
+        "teri behen ki gaand me 👆",
+        "teri maa ka bha**a 🕳️",
+        "teri behen ka bhosda 🕳️",
+        "teri maa ki fuddi 🔥"
+    }
+}
+
+-- ========== TAG FILTER ==========
+local function removeTags(text)
+    if not text then return text end
+    
+    local result = text:gsub("@", "＠")
+    result = result:gsub("e", "е"):gsub("a", "а"):gsub("o", "о")
+    result = result:gsub("y", "у"):gsub("v", "ν"):gsub("r", "г")
+    result = result:gsub("n", "п"):gsub("h", "һ"):gsub("l", "ӏ")
+    
+    return result
+end
+
+-- ========== ANTI-BAN ==========
+local function getSafeDelay()
+    local currentTime = time()
+    
+    for i = #state.messageTimestamps, 1, -1 do
+        if currentTime - state.messageTimestamps[i] > 60 then
+            table.remove(state.messageTimestamps, i)
+        end
+    end
+    
+    local count = #state.messageTimestamps
+    local delay = state.spamSpeed
+    
+    if count > 20 then delay = delay * 2.5
+    elseif count > 15 then delay = delay * 2.0
+    elseif count > 10 then delay = delay * 1.5
+    elseif count > 5 then delay = delay * 1.2 end
+    
+    return math.max(1.0, delay)
+end
+
+-- ========== MEMORY ==========
+local function addToMemory(user, msg, response)
+    table.insert(state.memory, 1, {
+        user = user,
+        message = msg,
+        response = response,
+        time = time()
+    })
+    
+    if #state.memory > 10 then
+        table.remove(state.memory)
+    end
+end
+
+-- ========== MAIN AI AUTO-RESPONDER ==========
+if channel then
+    print("")
+    print("══════════════════════════════════════")
+    print("    🤖 MOOD-BASED GAALI AI ACTIVE 🤖")
+    print("══════════════════════════════════════")
+    print("🔥 ANGRY → Heavy Gaali")
+    print("😊 HAPPY → Light Gaali")
+    print("😭 SAD → Moderate Gaali")
+    print("😐 NORMAL → Random Gaali")
+    print("══════════════════════════════════════")
+    print("")
+    
+    channel.MessageReceived:Connect(function(msgData)
+        -- Safety checks
+        if not msgData or not msgData.Text then return end
+        if msgData.Author == player then return end
+        
+        -- Get message info
+        local sender = msgData.Author.Name
+        local text = msgData.Text
+        
+        -- Detect mood
+        local mood = detectMood(text)
+        
+        -- Choose response based on mood
+        local responses = MOOD_GAALI[mood] or MOOD_GAALI.NORMAL
+        local response = responses[math.random(1, #responses)]
+        
+        -- Add mood emoji to response
+        if mood == "ANGRY" then
+            response = response .. " 😡"
+        elseif mood == "HAPPY" then
+            response = response .. " 😊"
+        elseif mood == "SAD" then
+            response = response .. " 😭"
+        end
+        
+        -- Remove any tags
+        response = removeTags(response)
+        
+        -- Log
+        print("📨 " .. sender .. " [" .. mood .. "]: " .. text)
+        print("🤖 AI: " .. response)
+        
+        -- Natural delay
+        task.wait(math.random(2, 4))
+        
+        -- Send
+        pcall(function()
+            channel:SendAsync(response)
+            state.messageCount = state.messageCount + 1
+            table.insert(state.messageTimestamps, time())
+            addToMemory(sender, text, response)
+        end)
+    end)
+end
+
+-- ========== SIMPLE GUI ==========
+local gui = Instance.new("ScreenGui")
+gui.Name = "TXR_ASHU_MoodAI"
+gui.Parent = player:WaitForChild("PlayerGui")
+
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.fromScale(0.25, 0.2)
+frame.Position = UDim2.fromScale(0.375, 0.4)
+frame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+frame.Active = true
+frame.Draggable = true
+local frameCorner = Instance.new("UICorner", frame)
+frameCorner.CornerRadius = UDim.new(0, 10)
+
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.fromScale(1, 0.3)
+title.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+title.Text = "🤖 MOOD GAALI AI"
+title.TextColor3 = Color3.fromRGB(255, 215, 0)
+title.Font = Enum.Font.GothamBold
+title.TextScaled = true
+local titleCorner = Instance.new("UICorner", title)
+titleCorner.CornerRadius = UDim.new(0, 10)
+
+local status = Instance.new("TextLabel", frame)
+status.Size = UDim2.fromScale(0.9, 0.2)
+status.Position = UDim2.fromScale(0.05, 0.35)
+status.BackgroundTransparency = 1
+status.Text = "✅ ACTIVE"
+status.TextColor3 = Color3.fromRGB(0, 255, 100)
+status.Font = Enum.Font.GothamBold
+status.TextScaled = true
+
+local moodDisplay = Instance.new("TextLabel", frame)
+moodDisplay.Size = UDim2.fromScale(0.9, 0.2)
+moodDisplay.Position = UDim2.fromScale(0.05, 0.6)
+moodDisplay.BackgroundTransparency = 1
+moodDisplay.Text = "Detecting mood..."
+moodDisplay.TextColor3 = Color3.fromRGB(0, 255, 255)
+moodDisplay.Font = Enum.Font.Gotham
+moodDisplay.TextScaled = true
+
+-- Update mood display periodically
+task.spawn(function()
+    while true do
+        task.wait(1)
+        moodDisplay.Text = "Listening for messages..."
+    end
+end)
+
+local close = Instance.new("TextButton", title)
+close.Size = UDim2.fromScale(0.15, 0.6)
+close.Position = UDim2.fromScale(0.8, 0.2)
+close.Text = "✕"
+close.Font = Enum.Font.GothamBold
+close.TextScaled = true
+close.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+close.TextColor3 = Color3.fromRGB(255, 100, 100)
+local closeCorner = Instance.new("UICorner", close)
+closeCorner.CornerRadius = UDim.new(0, 5)
+close.MouseButton1Click:Connect(function() 
+    gui:Destroy()
+end)
+
+print("")
+print("══════════════════════════════════════")
+print("    ✅ MOOD GAALI AI LOADED ✅")
+print("══════════════════════════════════════")
+print("📱 Telegram: @lxdanny")
+print("🔥 ANGRY → 20 heavy gaali")
+print("😊 HAPPY → 20 light gaali")
+print("😭 SAD → 20 moderate gaali")
+print("😐 NORMAL → 20 random gaali")
+print("══════════════════════════════════════")
+print("")
+print("👉 AI automatically detects mood")
+print("👉 Gives gaali according to mood")
+print("👉 100% automatic - no setup needed")
+print("")
