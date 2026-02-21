@@ -336,13 +336,13 @@ moodDisplay.TextColor3 = Color3.fromRGB(0, 255, 255)
 moodDisplay.Font = Enum.Font.Gotham
 moodDisplay.TextScaled = true
 
--- Update mood display periodically (FIXED)
+-- Update mood display periodically
 task.spawn(function()
     while true do
         task.wait(1)
         moodDisplay.Text = "Listening for messages..."
     end
-end)  -- 🔥 YEH END ADD KAR DIYA
+end)
 
 local close = Instance.new("TextButton", title)
 close.Size = UDim2.fromScale(0.15, 0.6)
