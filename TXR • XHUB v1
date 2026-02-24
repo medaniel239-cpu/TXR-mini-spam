@@ -9,11 +9,11 @@ local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer or Players:GetPlayers()[1]
 if not player then return end
 
--- STATE
+-- STATE (SAME)
 local spamming = false
 local praiseMode = false
 local localStyleMode = false
-local spamSpeed = 0.3  -- 🔥 DEFAULT 0.3s (FASTER!)
+local spamSpeed = 0.3
 local messageCount = 0
 local lastMessage = ""
 local msgIndex = 1
@@ -21,18 +21,18 @@ local autoSpamOnceCount = 0
 local AUTO_SPAM_INTERVAL = 20
 local firstMessageSent = false
 
--- RUDRA V4 STYLE CONFIG
+-- RUDRA V4 STYLE CONFIG (SAME)
 local currentPattern = "@#"
 local rawWords = {"LAAT", "HAAT", "MUNDI", "BHANGI", "CHAMAR", "GXNDU", "Juice", "Orange", "Ball", "Chakka", "Ethiopia", "Apple", "Gmd", "LuMD", "Bus", "Car", "Plane", "Paper", "6kka", "Delta", "Delhi", "Run", "Fast", "Void", "Ghost", "Fire", "Ice", "Wind", "Storm", "Kutta", "Chamar", "Nalla", "Gareeb", "Banana", "Mango", "Kiwi", "Berry", "Melon", "Lemon", "Lime", "Chair", "Table", "Fan", "Light", "Bulb", "Wire", "Switch", "Door", "Wall", "Roof", "Floor", "Tile", "Wood", "Iron", "Gold", "Silver", "Rock", "Sand", "Dust", "Mud", "River", "Lake", "Sea", "Ocean", "Ship", "Boat", "Tank", "Jeep", "Truck", "Van", "Bike", "Cycle", "Tyre", "Rim", "Wheel", "Seat", "Glass", "Cup", "Mug", "Jug", "Plate", "Spoon", "Fork", "Knife", "Pan", "Pot", "Cook", "Chef", "Food", "Rice", "Wheat", "Corn", "Pea", "Bean", "Nut", "Oil", "Gas", "Fuel", "Pump", "Station", "Road", "Path", "Way", "Map", "Key", "Lock", "Safe", "Box", "Bag", "Pack"}
 
--- ANTI-BAN
+-- ANTI-BAN (SAME)
 local messageTimestamps = {}
 local lastMessageTime = 0
 
--- TELEGRAM
+-- TELEGRAM (SAME)
 local TELEGRAM = "@lxdanny"
 
--- ========== SHARIF MODE KE MESSAGES ==========
+-- ========== SHARIF MODE KE MESSAGES (SAME) ==========
 local praiseMessages = {
     "tu toh meri battery ki tarah hai, low hone par bhi kaam karti hai",
     "tere jaisi dost mili toh ab kisi aur ki zaroorat nahi",
@@ -66,7 +66,7 @@ local praiseMessages = {
     "tere jaisa koi nahi"
 }
 
--- ========== ANTI-BAN SYSTEM (OPTIMIZED FOR 0.3s) ==========
+-- ========== ANTI-BAN SYSTEM ==========
 local function getSafeDelay()
     local currentTime = time()
     
@@ -79,7 +79,6 @@ local function getSafeDelay()
     local messagesLastMinute = #messageTimestamps
     local delay = spamSpeed
     
-    -- Smarter anti-ban for fast spam
     if messagesLastMinute > 25 then
         delay = delay * 2.5
     elseif messagesLastMinute > 20 then
@@ -91,7 +90,7 @@ local function getSafeDelay()
     end
     
     delay = delay * (math.random(85, 115) / 100)
-    return math.max(0.3, delay)  -- Min delay 0.3s
+    return math.max(0.3, delay)
 end
 
 -- ========== X-SPACING FILTER ==========
@@ -167,6 +166,7 @@ frame.Position = UDim2.fromScale(0.1, 0.2)
 frame.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
 frame.BorderSizePixel = 0
 frame.Active = true
+frame.Draggable = true
 local frameCorner = Instance.new("UICorner", frame)
 frameCorner.CornerRadius = UDim.new(0, 12)
 
@@ -194,43 +194,57 @@ titleBar.BorderSizePixel = 0
 local titleCorner = Instance.new("UICorner", titleBar)
 titleCorner.CornerRadius = UDim.new(0, 12)
 
+-- Title - TXR_ASHU
 local title = Instance.new("TextLabel", titleBar)
-title.Size = UDim2.fromScale(0.5, 1)
+title.Size = UDim2.fromScale(0.3, 1)
 title.Position = UDim2.fromScale(0.05, 0)
 title.BackgroundTransparency = 1
 title.Text = "TXR_ASHU"
 title.TextColor3 = Color3.fromRGB(255, 215, 0)
 title.Font = Enum.Font.GothamBold
+title.TextXAlignment = Enum.TextXAlignment.Left
 title.TextScaled = true
 
--- Telegram button (shortened for brevity - same as before)
-local teleBtn = Instance.new("TextButton", titleBar)
-teleBtn.Size = UDim2.fromScale(0.25, 0.7)
-teleBtn.Position = UDim2.fromScale(0.7, 0.15)
-teleBtn.Text = "📱 @lxdanny"
-teleBtn.Font = Enum.Font.GothamBold
-teleBtn.TextScaled = true
-teleBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 180)
-teleBtn.TextColor3 = Color3.new(1,1,1)
-local teleCorner = Instance.new("UICorner", teleBtn)
-teleCorner.CornerRadius = UDim.new(0, 20)
+-- 🔥 FIXED - Telegram username LEFT SIDE
+local teleLabel = Instance.new("TextLabel", titleBar)
+teleLabel.Size = UDim2.fromScale(0.25, 1)
+teleLabel.Position = UDim2.fromScale(0.35, 0)  -- Moved left from 0.7 to 0.35
+teleLabel.BackgroundTransparency = 1
+teleLabel.Text = "@lxdanny"
+teleLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
+teleLabel.Font = Enum.Font.GothamBold
+teleLabel.TextXAlignment = Enum.TextXAlignment.Left
+teleLabel.TextScaled = true
 
-teleBtn.MouseButton1Click:Connect(function()
+-- Copy button (small)
+local copyBtn = Instance.new("TextButton", titleBar)
+copyBtn.Size = UDim2.fromScale(0.08, 0.6)
+copyBtn.Position = UDim2.fromScale(0.6, 0.2)  -- Adjusted position
+copyBtn.Text = "📋"
+copyBtn.Font = Enum.Font.GothamBold
+copyBtn.TextScaled = true
+copyBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 180)
+copyBtn.TextColor3 = Color3.new(1,1,1)
+local copyCorner = Instance.new("UICorner", copyBtn)
+copyCorner.CornerRadius = UDim.new(0, 8)
+
+copyBtn.MouseButton1Click:Connect(function()
     setclipboard(TELEGRAM)
-    teleBtn.Text = "✅ Copied!"
+    copyBtn.Text = "✅"
     task.wait(1)
-    teleBtn.Text = "📱 @lxdanny"
+    copyBtn.Text = "📋"
 end)
 
--- Close button
+-- EXIT BUTTON - 'X' font
 local close = Instance.new("TextButton", titleBar)
-close.Size = UDim2.fromScale(0.07, 0.5)
-close.Position = UDim2.fromScale(0.93, 0.25)
-close.Text = "✕"
+close.Size = UDim2.fromScale(0.1, 0.7)
+close.Position = UDim2.fromScale(0.88, 0.15)
+close.Text = "X"
 close.Font = Enum.Font.GothamBold
-close.TextScaled = true
-close.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
-close.TextColor3 = Color3.fromRGB(255, 100, 100)
+close.TextSize = 30
+close.TextColor3 = Color3.fromRGB(255, 255, 255)
+close.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+close.BackgroundTransparency = 0.2
 local closeCorner = Instance.new("UICorner", close)
 closeCorner.CornerRadius = UDim.new(0, 8)
 
@@ -259,7 +273,7 @@ input.Font = Enum.Font.Gotham
 input.TextColor3 = Color3.new(1,1,1)
 input.TextScaled = true
 
--- Speed Control (UPDATED)
+-- Speed Control
 local speedBg = Instance.new("Frame", content)
 speedBg.Size = UDim2.fromScale(0.9, 0.1)
 speedBg.Position = UDim2.fromScale(0.05, 0.16)
@@ -291,7 +305,7 @@ local speedValue = Instance.new("TextLabel", speedBg)
 speedValue.Size = UDim2.fromScale(0.15, 0.7)
 speedValue.Position = UDim2.fromScale(0.45, 0.15)
 speedValue.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-speedValue.Text = "0.3s"  -- 🔥 DEFAULT 0.3s
+speedValue.Text = "0.3s"
 speedValue.TextColor3 = Color3.fromRGB(255, 200, 0)
 speedValue.Font = Enum.Font.GothamBold
 speedValue.TextScaled = true
@@ -553,14 +567,14 @@ task.spawn(function()
     end
 end)
 
--- BUTTON FUNCTIONS (UPDATED)
+-- BUTTON FUNCTIONS
 speedDown.MouseButton1Click:Connect(function()
-    spamSpeed = math.max(0.3, spamSpeed - 0.2)  -- Min 0.3s
+    spamSpeed = math.max(0.3, spamSpeed - 0.2)
     speedValue.Text = string.format("%.1fs", spamSpeed)
 end)
 
 speedUp.MouseButton1Click:Connect(function()
-    spamSpeed = math.min(10, spamSpeed + 0.2)   -- Max 10s
+    spamSpeed = math.min(10, spamSpeed + 0.2)
     speedValue.Text = string.format("%.1fs", spamSpeed)
 end)
 
@@ -665,11 +679,13 @@ end)
 
 print("")
 print("══════════════════════════════════════")
-print("    ✅ TXR_ASHU ULTRA FAST LOADED ✅")
+print("    ✅ TXR_ASHU FINAL EDITION ✅")
 print("══════════════════════════════════════")
 print("📱 Telegram: @lxdanny")
-print("⚡ SPEED: 0.3s - 10s (SUPER FAST!)")
+print("⚡ SPEED: 0.3s - 10s")
 print("💀 Sharif Mode: Funny + Flirty")
 print("🎯 Local Style: RUDRA V4 Style")
 print("🌈 RGB Glow on all elements!")
+print("🔧 FIXED: @lxdanny moved LEFT side")
+print("🔧 FIXED: Copy button added")
 print("══════════════════════════════════════")
