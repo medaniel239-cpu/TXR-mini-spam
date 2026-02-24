@@ -1,0 +1,675 @@
+-- SERVICES
+local Players = game:GetService("Players")
+local TextChatService = game:GetService("TextChatService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+
+-- PLAYER
+local player = Players.LocalPlayer or Players:GetPlayers()[1]
+if not player then return end
+
+-- STATE
+local spamming = false
+local praiseMode = false
+local localStyleMode = false
+local spamSpeed = 0.3  -- 🔥 DEFAULT 0.3s (FASTER!)
+local messageCount = 0
+local lastMessage = ""
+local msgIndex = 1
+local autoSpamOnceCount = 0
+local AUTO_SPAM_INTERVAL = 20
+local firstMessageSent = false
+
+-- RUDRA V4 STYLE CONFIG
+local currentPattern = "@#"
+local rawWords = {"LAAT", "HAAT", "MUNDI", "BHANGI", "CHAMAR", "GXNDU", "Juice", "Orange", "Ball", "Chakka", "Ethiopia", "Apple", "Gmd", "LuMD", "Bus", "Car", "Plane", "Paper", "6kka", "Delta", "Delhi", "Run", "Fast", "Void", "Ghost", "Fire", "Ice", "Wind", "Storm", "Kutta", "Chamar", "Nalla", "Gareeb", "Banana", "Mango", "Kiwi", "Berry", "Melon", "Lemon", "Lime", "Chair", "Table", "Fan", "Light", "Bulb", "Wire", "Switch", "Door", "Wall", "Roof", "Floor", "Tile", "Wood", "Iron", "Gold", "Silver", "Rock", "Sand", "Dust", "Mud", "River", "Lake", "Sea", "Ocean", "Ship", "Boat", "Tank", "Jeep", "Truck", "Van", "Bike", "Cycle", "Tyre", "Rim", "Wheel", "Seat", "Glass", "Cup", "Mug", "Jug", "Plate", "Spoon", "Fork", "Knife", "Pan", "Pot", "Cook", "Chef", "Food", "Rice", "Wheat", "Corn", "Pea", "Bean", "Nut", "Oil", "Gas", "Fuel", "Pump", "Station", "Road", "Path", "Way", "Map", "Key", "Lock", "Safe", "Box", "Bag", "Pack"}
+
+-- ANTI-BAN
+local messageTimestamps = {}
+local lastMessageTime = 0
+
+-- TELEGRAM
+local TELEGRAM = "@lxdanny"
+
+-- ========== SHARIF MODE KE MESSAGES ==========
+local praiseMessages = {
+    "tu toh meri battery ki tarah hai, low hone par bhi kaam karti hai",
+    "tere jaisi dost mili toh ab kisi aur ki zaroorat nahi",
+    "tu meri favorite notification hai",
+    "tera mood swing dekh ke lagta hai tu weather se bhi fast change karti hai",
+    "tere saath rehkar WiFi ki speed bhi badh jaati hai",
+    "tu meri life ki autocorrect hai, galtiyan sahi karti hai",
+    "teri hassi sunke lagta hai chiryaan bhi sharmaa jaaye",
+    "tu meri personal Google hai, har cheez ka jawab hai tere paas",
+    "tere saath time pass karna meri top priority hai",
+    "tu chocolate ki tarah hai, milti kam hai par pasand bohot aati hai",
+    "teri aankhein taarein hai, main toh har raat kho jaata hoon",
+    "tera smile dekh ke dil chahta hai bas dekhta rahoon",
+    "tu meri crush hai, but don't tell anyone 😉",
+    "teri baatein sunke neend aati hai, but in a good way",
+    "tu kaha thi itne din? meri life incomplete thi",
+    "tera naam sunke hi dil dhadakne lagta hai",
+    "tu meri life ki beauty queen hai",
+    "tere saath baat karna meri therapy hai",
+    "tu meri priyanshu hai, samjho agar samjho",
+    "teri adaayein killer hain, main toh fida ho gaya",
+    "tu meri choti behen jaisi hai, but more special",
+    "teri shaitaaniyaan bohot yaad aati hain",
+    "tu meri partner in crime hai",
+    "tere bina maza nahi aata",
+    "tu meri life ki rangat hai",
+    "teri baaton mein magic hai",
+    "tu mere din ki roshni hai",
+    "teri dosti meri taqat hai",
+    "tu sabse alag hai",
+    "tere jaisa koi nahi"
+}
+
+-- ========== ANTI-BAN SYSTEM (OPTIMIZED FOR 0.3s) ==========
+local function getSafeDelay()
+    local currentTime = time()
+    
+    for i = #messageTimestamps, 1, -1 do
+        if currentTime - messageTimestamps[i] > 60 then
+            table.remove(messageTimestamps, i)
+        end
+    end
+    
+    local messagesLastMinute = #messageTimestamps
+    local delay = spamSpeed
+    
+    -- Smarter anti-ban for fast spam
+    if messagesLastMinute > 25 then
+        delay = delay * 2.5
+    elseif messagesLastMinute > 20 then
+        delay = delay * 2.0
+    elseif messagesLastMinute > 15 then
+        delay = delay * 1.5
+    elseif messagesLastMinute > 10 then
+        delay = delay * 1.2
+    end
+    
+    delay = delay * (math.random(85, 115) / 100)
+    return math.max(0.3, delay)  -- Min delay 0.3s
+end
+
+-- ========== X-SPACING FILTER ==========
+local function xSpacingFilter(text)
+    local words = text:split(" ")
+    local result = {}
+    
+    for _, word in ipairs(words) do
+        local newWord = ""
+        for i = 1, #word do
+            local letter = word:sub(i,i)
+            newWord = newWord .. letter
+            if i < #word then
+                newWord = newWord .. "x"
+            end
+        end
+        table.insert(result, newWord)
+    end
+    
+    return table.concat(result, " ")
+end
+
+-- ========== RUDRA V4 STYLE MESSAGE GENERATOR ==========
+local function getLocalStyleMessage(targetText)
+    local randomWord = rawWords[math.random(1, #rawWords)]
+    local middle = (targetText ~= "" and (targetText .. " ") or "") 
+    local core = middle .. "tmkx mei " .. randomWord
+    
+    local patternStr = ""
+    local limit = 198 - #core
+    while (#patternStr + #currentPattern) <= (limit - 1) do
+        patternStr = patternStr .. currentPattern
+    end
+    
+    return patternStr .. " " .. core
+end
+
+-- ========== MESSAGES ==========
+local messages = {
+    "bsdk teri maa ka bhosda",
+    "mc teri gaand marunga",
+    "bkl teri maa ka bhosda",
+    "randibaaz teri maa ki chut",
+    "harami sala kutta ka bacha",
+    "gandu teri maa ko chod diya",
+    "chutiye sala teri behen ki chut",
+    "teri maa ka bhosda haramzade",
+    "saala kutta mc",
+    "teri gaand me danda dalenge",
+    "bsdk kitna rota hai",
+    "mc teri aukat nahi hai",
+    "bkl teri gaand me",
+    "halak me danda mc",
+    "ghore ka baccha bsdk",
+    "raat ka toy bkl",
+    "bathroom me pela mc",
+    "japanese tel bsdk",
+    "kutte ki aulad gandu",
+    "nunu kat dunga bsdk",
+}
+
+-- ========== GUI ==========
+local gui = Instance.new("ScreenGui")
+gui.Name = "TXR_ASHU_Spam"
+gui.ResetOnSpawn = false
+gui.Parent = game.CoreGui
+gui.DisplayOrder = 100
+
+-- MAIN FRAME
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.fromScale(0.4, 0.65)
+frame.Position = UDim2.fromScale(0.1, 0.2)
+frame.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
+frame.BorderSizePixel = 0
+frame.Active = true
+local frameCorner = Instance.new("UICorner", frame)
+frameCorner.CornerRadius = UDim.new(0, 12)
+
+-- RGB GLOW
+local rgbGlow = Instance.new("UIStroke", frame)
+rgbGlow.Thickness = 4
+rgbGlow.Transparency = 0.3
+local innerGlow = Instance.new("UIStroke", frame)
+innerGlow.Color = Color3.fromRGB(255, 255, 255)
+innerGlow.Thickness = 1
+innerGlow.Transparency = 0.7
+
+local hue = 0
+local rgbConnection
+rgbConnection = RunService.RenderStepped:Connect(function()
+    hue = (hue + 0.005) % 1
+    rgbGlow.Color = Color3.fromHSV(hue, 1, 1)
+end)
+
+-- TITLE BAR
+local titleBar = Instance.new("Frame", frame)
+titleBar.Size = UDim2.fromScale(1, 0.12)
+titleBar.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+titleBar.BorderSizePixel = 0
+local titleCorner = Instance.new("UICorner", titleBar)
+titleCorner.CornerRadius = UDim.new(0, 12)
+
+local title = Instance.new("TextLabel", titleBar)
+title.Size = UDim2.fromScale(0.5, 1)
+title.Position = UDim2.fromScale(0.05, 0)
+title.BackgroundTransparency = 1
+title.Text = "TXR_ASHU"
+title.TextColor3 = Color3.fromRGB(255, 215, 0)
+title.Font = Enum.Font.GothamBold
+title.TextScaled = true
+
+-- Telegram button (shortened for brevity - same as before)
+local teleBtn = Instance.new("TextButton", titleBar)
+teleBtn.Size = UDim2.fromScale(0.25, 0.7)
+teleBtn.Position = UDim2.fromScale(0.7, 0.15)
+teleBtn.Text = "📱 @lxdanny"
+teleBtn.Font = Enum.Font.GothamBold
+teleBtn.TextScaled = true
+teleBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 180)
+teleBtn.TextColor3 = Color3.new(1,1,1)
+local teleCorner = Instance.new("UICorner", teleBtn)
+teleCorner.CornerRadius = UDim.new(0, 20)
+
+teleBtn.MouseButton1Click:Connect(function()
+    setclipboard(TELEGRAM)
+    teleBtn.Text = "✅ Copied!"
+    task.wait(1)
+    teleBtn.Text = "📱 @lxdanny"
+end)
+
+-- Close button
+local close = Instance.new("TextButton", titleBar)
+close.Size = UDim2.fromScale(0.07, 0.5)
+close.Position = UDim2.fromScale(0.93, 0.25)
+close.Text = "✕"
+close.Font = Enum.Font.GothamBold
+close.TextScaled = true
+close.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+close.TextColor3 = Color3.fromRGB(255, 100, 100)
+local closeCorner = Instance.new("UICorner", close)
+closeCorner.CornerRadius = UDim.new(0, 8)
+
+-- CONTENT
+local content = Instance.new("Frame", frame)
+content.Size = UDim2.fromScale(1, 0.88)
+content.Position = UDim2.fromScale(0, 0.12)
+content.BackgroundTransparency = 1
+
+-- Input
+local inputBg = Instance.new("Frame", content)
+inputBg.Size = UDim2.fromScale(0.9, 0.12)
+inputBg.Position = UDim2.fromScale(0.05, 0.03)
+inputBg.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+local inputBgCorner = Instance.new("UICorner", inputBg)
+inputBgCorner.CornerRadius = UDim.new(0, 8)
+
+local input = Instance.new("TextBox", inputBg)
+input.Size = UDim2.fromScale(0.95, 1)
+input.Position = UDim2.fromScale(0.05, 0)
+input.BackgroundTransparency = 1
+input.PlaceholderText = "Enter Target Name"
+input.PlaceholderColor3 = Color3.fromRGB(100, 100, 120)
+input.Text = ""
+input.Font = Enum.Font.Gotham
+input.TextColor3 = Color3.new(1,1,1)
+input.TextScaled = true
+
+-- Speed Control (UPDATED)
+local speedBg = Instance.new("Frame", content)
+speedBg.Size = UDim2.fromScale(0.9, 0.1)
+speedBg.Position = UDim2.fromScale(0.05, 0.16)
+speedBg.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
+local speedBgCorner = Instance.new("UICorner", speedBg)
+speedBgCorner.CornerRadius = UDim.new(0, 8)
+
+local speedLabel = Instance.new("TextLabel", speedBg)
+speedLabel.Size = UDim2.fromScale(0.2, 1)
+speedLabel.Position = UDim2.fromScale(0.05, 0)
+speedLabel.BackgroundTransparency = 1
+speedLabel.Text = "SPEED"
+speedLabel.TextColor3 = Color3.fromRGB(180, 180, 200)
+speedLabel.Font = Enum.Font.GothamBold
+speedLabel.TextScaled = true
+
+local speedDown = Instance.new("TextButton", speedBg)
+speedDown.Size = UDim2.fromScale(0.12, 0.6)
+speedDown.Position = UDim2.fromScale(0.3, 0.2)
+speedDown.Text = "−"
+speedDown.Font = Enum.Font.GothamBold
+speedDown.TextScaled = true
+speedDown.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+speedDown.TextColor3 = Color3.new(1,1,1)
+local downCorner = Instance.new("UICorner", speedDown)
+downCorner.CornerRadius = UDim.new(0, 4)
+
+local speedValue = Instance.new("TextLabel", speedBg)
+speedValue.Size = UDim2.fromScale(0.15, 0.7)
+speedValue.Position = UDim2.fromScale(0.45, 0.15)
+speedValue.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+speedValue.Text = "0.3s"  -- 🔥 DEFAULT 0.3s
+speedValue.TextColor3 = Color3.fromRGB(255, 200, 0)
+speedValue.Font = Enum.Font.GothamBold
+speedValue.TextScaled = true
+local valueCorner = Instance.new("UICorner", speedValue)
+valueCorner.CornerRadius = UDim.new(0, 4)
+
+local speedUp = Instance.new("TextButton", speedBg)
+speedUp.Size = UDim2.fromScale(0.12, 0.6)
+speedUp.Position = UDim2.fromScale(0.62, 0.2)
+speedUp.Text = "+"
+speedUp.Font = Enum.Font.GothamBold
+speedUp.TextScaled = true
+speedUp.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+speedUp.TextColor3 = Color3.new(1,1,1)
+local upCorner = Instance.new("UICorner", speedUp)
+upCorner.CornerRadius = UDim.new(0, 4)
+
+-- Stats
+local statsBg = Instance.new("Frame", content)
+statsBg.Size = UDim2.fromScale(0.9, 0.09)
+statsBg.Position = UDim2.fromScale(0.05, 0.27)
+statsBg.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
+local statsCorner = Instance.new("UICorner", statsBg)
+statsCorner.CornerRadius = UDim.new(0, 8)
+
+local counter = Instance.new("TextLabel", statsBg)
+counter.Size = UDim2.fromScale(0.3, 1)
+counter.Position = UDim2.fromScale(0.1, 0)
+counter.BackgroundTransparency = 1
+counter.Text = "0 msgs"
+counter.TextColor3 = Color3.fromRGB(0, 255, 100)
+counter.Font = Enum.Font.GothamBold
+counter.TextScaled = true
+
+local autoLabel = Instance.new("TextLabel", statsBg)
+autoLabel.Size = UDim2.fromScale(0.2, 1)
+autoLabel.Position = UDim2.fromScale(0.6, 0)
+autoLabel.BackgroundTransparency = 1
+autoLabel.Text = "20"
+autoLabel.TextColor3 = Color3.fromRGB(255, 200, 0)
+autoLabel.Font = Enum.Font.GothamBold
+autoLabel.TextScaled = true
+
+-- ========== MODES SECTION ==========
+local modesY = 0.37
+
+-- Sharif Mode Button
+local sharifBg = Instance.new("Frame", content)
+sharifBg.Size = UDim2.fromScale(0.9, 0.09)
+sharifBg.Position = UDim2.fromScale(0.05, modesY)
+sharifBg.BackgroundColor3 = Color3.fromRGB(20, 20, 35)
+local sharifCorner = Instance.new("UICorner", sharifBg)
+sharifCorner.CornerRadius = UDim.new(0, 8)
+
+local sharifIcon = Instance.new("TextLabel", sharifBg)
+sharifIcon.Size = UDim2.fromScale(0.15, 1)
+sharifIcon.Position = UDim2.fromScale(0.05, 0)
+sharifIcon.BackgroundTransparency = 1
+sharifIcon.Text = "💀"
+sharifIcon.TextColor3 = Color3.fromRGB(255, 200, 0)
+sharifIcon.Font = Enum.Font.Gotham
+sharifIcon.TextScaled = true
+
+local sharifText = Instance.new("TextLabel", sharifBg)
+sharifText.Size = UDim2.fromScale(0.5, 1)
+sharifText.Position = UDim2.fromScale(0.25, 0)
+sharifText.BackgroundTransparency = 1
+sharifText.Text = "Sharif Mode"
+sharifText.TextColor3 = Color3.fromRGB(255, 200, 150)
+sharifText.Font = Enum.Font.GothamBold
+sharifText.TextScaled = true
+
+local sharifToggle = Instance.new("TextButton", sharifBg)
+sharifToggle.Size = UDim2.fromScale(0.2, 0.7)
+sharifToggle.Position = UDim2.fromScale(0.75, 0.15)
+sharifToggle.Text = "OFF"
+sharifToggle.Font = Enum.Font.GothamBold
+sharifToggle.TextScaled = true
+sharifToggle.BackgroundColor3 = Color3.fromRGB(100, 0, 0)
+sharifToggle.TextColor3 = Color3.new(1,1,1)
+local sharifToggleCorner = Instance.new("UICorner", sharifToggle)
+sharifToggleCorner.CornerRadius = UDim.new(0, 15)
+
+modesY = modesY + 0.11
+
+-- LOCAL STYLE BUTTON
+local localBg = Instance.new("Frame", content)
+localBg.Size = UDim2.fromScale(0.9, 0.09)
+localBg.Position = UDim2.fromScale(0.05, modesY)
+localBg.BackgroundColor3 = Color3.fromRGB(35, 20, 45)
+local localCorner = Instance.new("UICorner", localBg)
+localCorner.CornerRadius = UDim.new(0, 8)
+
+local localIcon = Instance.new("TextLabel", localBg)
+localIcon.Size = UDim2.fromScale(0.15, 1)
+localIcon.Position = UDim2.fromScale(0.05, 0)
+localIcon.BackgroundTransparency = 1
+localIcon.Text = "🎯"
+localIcon.TextColor3 = Color3.fromRGB(200, 100, 255)
+localIcon.Font = Enum.Font.Gotham
+localIcon.TextScaled = true
+
+local localText = Instance.new("TextLabel", localBg)
+localText.Size = UDim2.fromScale(0.5, 1)
+localText.Position = UDim2.fromScale(0.25, 0)
+localText.BackgroundTransparency = 1
+localText.Text = "Local Style"
+localText.TextColor3 = Color3.fromRGB(200, 100, 255)
+localText.Font = Enum.Font.GothamBold
+localText.TextScaled = true
+
+local localToggle = Instance.new("TextButton", localBg)
+localToggle.Size = UDim2.fromScale(0.2, 0.7)
+localToggle.Position = UDim2.fromScale(0.75, 0.15)
+localToggle.Text = "OFF"
+localToggle.Font = Enum.Font.GothamBold
+localToggle.TextScaled = true
+localToggle.BackgroundColor3 = Color3.fromRGB(100, 0, 0)
+localToggle.TextColor3 = Color3.new(1,1,1)
+local localToggleCorner = Instance.new("UICorner", localToggle)
+localToggleCorner.CornerRadius = UDim.new(0, 15)
+
+-- Action Buttons
+local actionBg = Instance.new("Frame", content)
+actionBg.Size = UDim2.fromScale(0.9, 0.13)
+actionBg.Position = UDim2.fromScale(0.05, 0.6)
+actionBg.BackgroundTransparency = 1
+
+local toggle = Instance.new("TextButton", actionBg)
+toggle.Size = UDim2.fromScale(0.45, 0.8)
+toggle.Position = UDim2.fromScale(0, 0.1)
+toggle.Text = "START"
+toggle.Font = Enum.Font.GothamBold
+toggle.TextScaled = true
+toggle.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+toggle.TextColor3 = Color3.new(1,1,1)
+local toggleCorner = Instance.new("UICorner", toggle)
+toggleCorner.CornerRadius = UDim.new(0, 20)
+
+local spamOnce = Instance.new("TextButton", actionBg)
+spamOnce.Size = UDim2.fromScale(0.45, 0.8)
+spamOnce.Position = UDim2.fromScale(0.55, 0.1)
+spamOnce.Text = "SPAM ONCE"
+spamOnce.Font = Enum.Font.GothamBold
+spamOnce.TextScaled = true
+spamOnce.BackgroundColor3 = Color3.fromRGB(150, 0, 150)
+spamOnce.TextColor3 = Color3.new(1,1,1)
+local onceCorner = Instance.new("UICorner", spamOnce)
+onceCorner.CornerRadius = UDim.new(0, 20)
+
+-- REOPEN BUTTON
+local reopen = Instance.new("TextButton", gui)
+reopen.Size = UDim2.fromScale(0.08, 0.08)
+reopen.Position = UDim2.fromScale(0.4, 0.85)
+reopen.Text = "⚡"
+reopen.Visible = false
+reopen.Font = Enum.Font.GothamBold
+reopen.TextScaled = true
+reopen.BackgroundColor3 = Color3.fromRGB(255,200,0)
+reopen.TextColor3 = Color3.new(0,0,0)
+local reopenCorner = Instance.new("UICorner", reopen)
+reopenCorner.CornerRadius = UDim.new(1, 0)
+
+-- DRAG REOPEN
+local rDragging, rStart, rPos
+reopen.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        rDragging = true
+        rStart = input.Position
+        rPos = reopen.Position
+    end
+end)
+reopen.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        rDragging = false
+    end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if rDragging and (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) then
+        local delta = input.Position - rStart
+        reopen.Position = UDim2.new(
+            rPos.X.Scale,
+            rPos.X.Offset + delta.X,
+            rPos.Y.Scale,
+            rPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+-- ========== FUNCTIONS ==========
+local function sendMessage(targetName, messageText, isGaliMessage, useLocalStyle)
+    local channel = TextChatService.TextChannels.RBXGeneral
+    if channel then
+        local finalText
+        
+        if useLocalStyle then
+            finalText = getLocalStyleMessage(targetName)
+        elseif isGaliMessage then
+            finalText = targetName .. " " .. xSpacingFilter(messageText)
+        else
+            finalText = targetName .. " " .. messageText
+        end
+        
+        channel:SendAsync(finalText)
+        
+        lastMessageTime = time()
+        table.insert(messageTimestamps, lastMessageTime)
+        if #messageTimestamps > 30 then
+            table.remove(messageTimestamps, 1)
+        end
+        
+        messageCount = messageCount + 1
+        counter.Text = messageCount .. " msgs"
+        autoSpamOnceCount = autoSpamOnceCount + 1
+        local remaining = AUTO_SPAM_INTERVAL - ((autoSpamOnceCount - 1) % AUTO_SPAM_INTERVAL)
+        autoLabel.Text = remaining
+    end
+end
+
+-- SPAM LOOP
+task.spawn(function()
+    while true do
+        if spamming and input.Text ~= "" then
+            local delay = getSafeDelay()
+            
+            if not firstMessageSent then
+                local channel = TextChatService.TextChannels.RBXGeneral
+                if channel then
+                    channel:SendAsync('SOoooooo Ready "TXR_ASHU MINI SPAAM START !!!!!!!!!!!!!!!"')
+                end
+                firstMessageSent = true
+                messageCount = messageCount + 1
+                counter.Text = messageCount .. " msgs"
+            elseif autoSpamOnceCount > 0 and autoSpamOnceCount % AUTO_SPAM_INTERVAL == 0 then
+                local channel = TextChatService.TextChannels.RBXGeneral
+                if channel then
+                    channel:SendAsync("abakxbkdbdksbskdbxkdbsksbksbd")
+                end
+            else
+                if localStyleMode then
+                    sendMessage(input.Text, "", false, true)
+                elseif praiseMode then
+                    local praiseMsg = praiseMessages[math.random(1, #praiseMessages)]
+                    sendMessage(input.Text, praiseMsg, false, false)
+                else
+                    repeat
+                        msgIndex = msgIndex + 1
+                        if msgIndex > #messages then msgIndex = 1 end
+                    until messages[msgIndex] ~= lastMessage
+                    lastMessage = messages[msgIndex]
+                    sendMessage(input.Text, messages[msgIndex], true, false)
+                end
+            end
+            
+            task.wait(delay)
+        else
+            task.wait(0.5)
+        end
+    end
+end)
+
+-- BUTTON FUNCTIONS (UPDATED)
+speedDown.MouseButton1Click:Connect(function()
+    spamSpeed = math.max(0.3, spamSpeed - 0.2)  -- Min 0.3s
+    speedValue.Text = string.format("%.1fs", spamSpeed)
+end)
+
+speedUp.MouseButton1Click:Connect(function()
+    spamSpeed = math.min(10, spamSpeed + 0.2)   -- Max 10s
+    speedValue.Text = string.format("%.1fs", spamSpeed)
+end)
+
+sharifToggle.MouseButton1Click:Connect(function()
+    praiseMode = not praiseMode
+    if praiseMode then
+        localStyleMode = false
+        localToggle.Text = "OFF"
+        localToggle.BackgroundColor3 = Color3.fromRGB(100, 0, 0)
+        localBg.BackgroundColor3 = Color3.fromRGB(35, 20, 45)
+        localText.TextColor3 = Color3.fromRGB(200, 100, 255)
+        localIcon.Text = "🎯"
+        
+        sharifToggle.Text = "ON"
+        sharifToggle.BackgroundColor3 = Color3.fromRGB(0, 100, 0)
+        sharifBg.BackgroundColor3 = Color3.fromRGB(255, 192, 203)
+        sharifText.TextColor3 = Color3.fromRGB(255, 105, 180)
+        sharifIcon.Text = "💀✨"
+    else
+        sharifToggle.Text = "OFF"
+        sharifToggle.BackgroundColor3 = Color3.fromRGB(100, 0, 0)
+        sharifBg.BackgroundColor3 = Color3.fromRGB(20, 20, 35)
+        sharifText.TextColor3 = Color3.fromRGB(255, 200, 150)
+        sharifIcon.Text = "💀"
+    end
+end)
+
+localToggle.MouseButton1Click:Connect(function()
+    localStyleMode = not localStyleMode
+    if localStyleMode then
+        praiseMode = false
+        sharifToggle.Text = "OFF"
+        sharifToggle.BackgroundColor3 = Color3.fromRGB(100, 0, 0)
+        sharifBg.BackgroundColor3 = Color3.fromRGB(20, 20, 35)
+        sharifText.TextColor3 = Color3.fromRGB(255, 200, 150)
+        sharifIcon.Text = "💀"
+        
+        localToggle.Text = "ON"
+        localToggle.BackgroundColor3 = Color3.fromRGB(0, 100, 0)
+        localBg.BackgroundColor3 = Color3.fromRGB(80, 40, 120)
+        localText.TextColor3 = Color3.fromRGB(255, 150, 255)
+        localIcon.Text = "🎯✨"
+    else
+        localToggle.Text = "OFF"
+        localToggle.BackgroundColor3 = Color3.fromRGB(100, 0, 0)
+        localBg.BackgroundColor3 = Color3.fromRGB(35, 20, 45)
+        localText.TextColor3 = Color3.fromRGB(200, 100, 255)
+        localIcon.Text = "🎯"
+    end
+end)
+
+toggle.MouseButton1Click:Connect(function()
+    spamming = not spamming
+    if spamming then
+        toggle.Text = "STOP"
+        toggle.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+        messageCount = 0
+        autoSpamOnceCount = 0
+        firstMessageSent = false
+        counter.Text = "0 msgs"
+        autoLabel.Text = "20"
+    else
+        toggle.Text = "START"
+        toggle.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+    end
+end)
+
+spamOnce.MouseButton1Click:Connect(function()
+    local channel = TextChatService.TextChannels.RBXGeneral
+    if channel then
+        if localStyleMode then
+            local localMsg = getLocalStyleMessage(input.Text)
+            channel:SendAsync(localMsg)
+        else
+            channel:SendAsync("abakxbkdbdksbskdbxkdbsksbksbd")
+        end
+        
+        lastMessageTime = time()
+        table.insert(messageTimestamps, lastMessageTime)
+        if #messageTimestamps > 30 then
+            table.remove(messageTimestamps, 1)
+        end
+        
+        messageCount = messageCount + 1
+        counter.Text = messageCount .. " msgs"
+    end
+end)
+
+close.MouseButton1Click:Connect(function()
+    frame.Visible = false
+    reopen.Visible = true
+end)
+reopen.MouseButton1Click:Connect(function()
+    frame.Visible = true
+    reopen.Visible = false
+end)
+
+-- Clean up connections
+gui.Destroying:Connect(function()
+    if rgbConnection then rgbConnection:Disconnect() end
+end)
+
+print("")
+print("══════════════════════════════════════")
+print("    ✅ TXR_ASHU ULTRA FAST LOADED ✅")
+print("══════════════════════════════════════")
+print("📱 Telegram: @lxdanny")
+print("⚡ SPEED: 0.3s - 10s (SUPER FAST!)")
+print("💀 Sharif Mode: Funny + Flirty")
+print("🎯 Local Style: RUDRA V4 Style")
+print("🌈 RGB Glow on all elements!")
+print("══════════════════════════════════════")
