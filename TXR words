@@ -146,6 +146,7 @@ end)
 
 local url = "https://raw.githubusercontent.com/skrylor/english-words/refs/heads/main/merged_english.txt"
 local url = "https://raw.githubusercontent.com/MrLabbrow/All-English-Words/main/Words.txt"
+local url = "https://raw.githubusercontent.com/dwyl/english-words/master/words.txt"
 local fileName = "ultimate_words_v4.txt"
 
 -- Temporary Loading UI
